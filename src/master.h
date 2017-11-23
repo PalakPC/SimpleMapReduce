@@ -5,7 +5,9 @@
 
 
 /* CS6210_TASK: Handle all the bookkeeping that Master is supposed to do.
-	This is probably the biggest task for this project, will test your understanding of map reduce */
+ * This is probably the biggest task for this project, will test your
+ * understanding of map reduce.
+ */
 class Master {
 
 	public:
@@ -16,19 +18,25 @@ class Master {
 		bool run();
 
 	private:
-		/* NOW you can add below, data members and member functions as per the need of your implementation*/
-
+		/* NOW you can add below, data members and member functions
+		 * as per the need of your implementation
+		 */
 };
 
 
-/* CS6210_TASK: This is all the information your master will get from the framework.
-	You can populate your other class data members here if you want */
-Master::Master(const MapReduceSpec& mr_spec, const std::vector<FileShard>& file_shards) {
+/* CS6210_TASK: This is all the information your master will
+ * get from the framework. You can populate your other class data members
+ * here if you want.
+ */
+Master::Master(const MapReduceSpec& mr_spec,
+	       const std::vector<FileShard>& file_shards) {
 
 }
 
 
-/* CS6210_TASK: Here you go. once this function is called you will complete whole map reduce task and return true if succeeded */
+/* CS6210_TASK: Here you go. once this function is called you will complete
+ * whole map reduce task and return true if succeeded.
+ */
 bool Master::run() {
 	return true;
 }

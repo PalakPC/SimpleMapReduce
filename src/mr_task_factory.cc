@@ -35,8 +35,10 @@ namespace {
 		  std::shared_ptr<BaseMapper> get_mapper(const std::string& user_id);
 		  std::shared_ptr<BaseReducer> get_reducer(const std::string& user_id);
 
-	 	  std::unordered_map<std::string, std::function<std::shared_ptr<BaseMapper>()> > mappers_;
-		  std::unordered_map<std::string, std::function<std::shared_ptr<BaseReducer>()> > reducers_;
+	 	  std::unordered_map<std::string,
+				     std::function<std::shared_ptr<BaseMapper>()> > mappers_;
+		  std::unordered_map<std::string,
+				     std::function<std::shared_ptr<BaseReducer>()> > reducers_;
 
 		private:
 		  TaskFactory();
@@ -71,8 +73,9 @@ namespace {
 }
 
 
-bool register_tasks(std::string user_id,  std::function<std::shared_ptr<BaseMapper>() >& generate_mapper,
-		std::function<std::shared_ptr<BaseReducer>() >& generate_reducer) {
+bool register_tasks(std::string user_id,
+		    std::function<std::shared_ptr<BaseMapper>() >& generate_mapper,
+		    std::function<std::shared_ptr<BaseReducer>() >& generate_reducer) {
 	TaskFactory& factory = TaskFactory::instance();
 	return factory.mappers_.insert(std::make_pair(user_id, generate_mapper)).second 
 		&& factory.reducers_.insert(std::make_pair(user_id, generate_reducer)).second;
