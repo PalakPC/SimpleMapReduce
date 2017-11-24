@@ -18,9 +18,8 @@ class Master {
 		bool run();
 
 	private:
-		/* NOW you can add below, data members and member functions
-		 * as per the need of your implementation
-		 */
+		std::list<struct worker> worker_queue;
+		std::vector<FileShard> shards;
 };
 
 
@@ -31,6 +30,8 @@ class Master {
 Master::Master(const MapReduceSpec& mr_spec,
 	       const std::vector<FileShard>& file_shards) {
 
+	worker_queue = mr_spec.worker_queue;
+	shards = file_shards;
 }
 
 
@@ -38,5 +39,20 @@ Master::Master(const MapReduceSpec& mr_spec,
  * whole map reduce task and return true if succeeded.
  */
 bool Master::run() {
+
+	int num_completed_map_tasks = 0;
+
+	while (num_completed_map_tasks < shards.size()) {
+
+		while (!worker_queue.empty()) {
+			
+			/* Assign Workers to Map Tasks */
+		}
+
+		while (worker_queue.empty()) {
+			
+			/* Receive Completed Requests. Update Invariants */
+		}
+	}
 	return true;
 }

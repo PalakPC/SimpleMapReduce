@@ -11,13 +11,14 @@
  * master would use for its own bookkeeping and to convey
  * the tasks to the workers for mapping
  */
-struct pair {
+struct file_offsets {
 	size_t begin, end;
 	std::string file;
 };
 
 struct FileShard {
-	std::vector<struct pair> tuples;
+	bool isComplete;
+	std::vector<struct file_offsets> files;
 };
 
 
@@ -37,32 +38,32 @@ shard_files(const MapReduceSpec& mr_spec,
 	for(unsigned ii = 0u; ii < num_shards; ii++) {
 
 		FileShard shard;
+		shard.isComplete = false;
 		size_t to_read = gran;
 
 		while (to_read) {
 			
-			struct pair file_offset;
-			file_offset.file = cur.file;
-			file_offset.begin = begin;
+			struct file_offsets fo;
+			fo.file = cur.file;
+			fo.begin = begin;
 
 			if (to_read >= (cur.stats.st_size - begin)) {
 
-				file_offset.end = cur.stats.st_size;
-				shard.tuples.push_back(file_offset);
+				fo.end = cur.stats.st_size;
+				shard.files.push_back(fo);
 				begin = 0u;
 				to_read -= cur.stats.st_size - begin;
 				cur = mr_spec.inputs.front();
 
 			} else {
 				
-				file_offset.end = begin + to_read;
-				shard.tuples.push_back(file_offset);
+				fo.end = begin + to_read;
+				shard.files.push_back(fo);
 				begin += to_read;
 				to_read = 0u;
 			}
 		}
 		fileShards.push_back(shard);
 	}
-
 	return true;
 }

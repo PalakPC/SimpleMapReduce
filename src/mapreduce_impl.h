@@ -11,8 +11,11 @@ class MapReduceImpl {
 		bool run(const std::string& config_filename);
 
 	private:
-		/* DON'T change the function declaration for these three functions */
-		bool read_and_validate_spec(const std::string& config_filename);
+		/* DON'T change the function declaration for
+		 * these three functions
+		 */
+		bool read_and_validate_spec(
+			const std::string& config_filename);
 		bool create_shards();
 		bool run_master();
 

@@ -26,7 +26,7 @@ class Worker {
 
 
 /* CS6210_TASK: ip_addr_port is the only information you get when started.
- *  You can populate your other class data members here if you want
+ * You can populate your other class data members here if you want
  */
 Worker::Worker(std::string ip_addr_port) {
 
@@ -47,6 +47,7 @@ get_reducer_from_task_factory(const std::string& user_id);
  * however you want when running map/reduce tasks.
  */
 bool Worker::run() {
+	
 	/*  Below 5 lines are just examples of how you will call map and reduce
 	 *  Remove them once you start writing your own logic
 	 */
