@@ -17,8 +17,8 @@ MR_WORKER_LIB = ../external/lib/libmr_worker.a
 
 all: system-check $(MAPREDUCE_LIB) $(MR_WORKER_LIB)
 
-$(MAPREDUCE_LIB): masterworker.pb.o masterworker.grpc.pb.o mapreduce_impl.o mapreduce.o
-	ar -rcs $@ masterworker.pb.o masterworker.grpc.pb.o mapreduce_impl.o mapreduce.o
+$(MAPREDUCE_LIB): masterworker.pb.o masterworker.grpc.pb.o master.o worker_rpc.o mapreduce_impl.o mapreduce.o
+	ar -rcs $@ masterworker.pb.o masterworker.grpc.pb.o master.o worker_rpc.o mapreduce_impl.o mapreduce.o
 	ranlib $@
 
 $(MR_WORKER_LIB): masterworker.pb.o masterworker.grpc.pb.o mr_task_factory.o run_worker.o
@@ -41,7 +41,7 @@ $(MR_WORKER_LIB): masterworker.pb.o masterworker.grpc.pb.o mr_task_factory.o run
 	chmod 444 *.pb.*
 
 clean:
-	rm -f *.o *.pb.cc *.pb.h $(MAPREDUCE_LIB) $(MR_WORKER_LIB)
+	rm -f *~ *.o *.pb.cc *.pb.h $(MAPREDUCE_LIB) $(MR_WORKER_LIB)
 
 
 # The following is to test your system and ensure a smoother experience.

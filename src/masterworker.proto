@@ -2,13 +2,12 @@ syntax = "proto3";
 
 package masterworker;
 
-service MapperReducer {
-	rpc mapFileShard (MapperRequest) returns (MapperReply) {}
-	rpc reduceMapping (ReducerRequest) returns (ReducerReply) {}
+service Mapper {
+	rpc map (MapRequest) returns (MapReply) {}	
 }
 
-message MapperRequest {
-	repeated ShardInfo shards = 1;	
+message MapRequest {
+	repeated ShardInfo shards = 1;
 }
 
 message ShardInfo {
@@ -17,7 +16,7 @@ message ShardInfo {
 	string file_name = 3;
 }
 
-message MapperReply {
+message MapReply {
 	repeated MapResults results = 1;
 }
 
@@ -26,10 +25,14 @@ message MapResults {
 	string file = 2;
 }
 
-message ReducerRequest {
+service Reducer {
+	rpc reduce (ReduceRequest) returns (ReduceReply) {}
+}
+
+message ReduceRequest {
 	string foo = 1;
 }
 
-message ReducerReply {
+message ReduceReply {
 	string bar = 1;
 }

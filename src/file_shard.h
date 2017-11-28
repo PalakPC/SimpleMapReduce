@@ -1,7 +1,13 @@
 #pragma once
 
+#include "masterworker.grpc.pb.h"
+
+using masterworker::Mapper;
+using masterworker::MapRequest;
+using masterworker::MapReply;
+using masterworker::ShardInfo;
+
 #include <list>
-#include <cmath>
 #include <vector>
 #include "mapreduce_spec.h"
 
@@ -11,14 +17,8 @@
  * master would use for its own bookkeeping and to convey
  * the tasks to the workers for mapping
  */
-struct file_offsets {
-	size_t begin, end;
-	std::string file;
-};
-
 struct FileShard {
-	bool isComplete;
-	std::vector<struct file_offsets> files;
+	MapRequest shards;
 };
 
 
@@ -29,7 +29,7 @@ inline bool
 shard_files(const MapReduceSpec& mr_spec,
 	    std::vector<FileShard>& fileShards)
 {
-	const size_t gran = mr_spec.granularity;
+	const size_t gran = mr_spec.granularity << 10; /* KB --> bytes */
 	size_t num_shards = (mr_spec.size + (gran - 1)) / gran;
 
 	size_t begin = 0u;
@@ -37,33 +37,30 @@ shard_files(const MapReduceSpec& mr_spec,
 
 	for(unsigned ii = 0u; ii < num_shards; ii++) {
 
-		FileShard shard;
-		shard.isComplete = false;
+		FileShard request;
 		size_t to_read = gran;
 
 		while (to_read) {
 			
-			struct file_offsets fo;
-			fo.file = cur.file;
-			fo.begin = begin;
+			ShardInfo *si = request.shards.add_shards();
+			si->set_file_name(cur.file);
+			si->set_begin(begin);
 
 			if (to_read >= (cur.stats.st_size - begin)) {
 
-				fo.end = cur.stats.st_size;
-				shard.files.push_back(fo);
+				si->set_end(cur.stats.st_size);
 				begin = 0u;
 				to_read -= cur.stats.st_size - begin;
 				cur = mr_spec.inputs.front();
 
 			} else {
 				
-				fo.end = begin + to_read;
-				shard.files.push_back(fo);
+				si->set_end(begin + to_read);
 				begin += to_read;
 				to_read = 0u;
 			}
 		}
-		fileShards.push_back(shard);
+		fileShards.push_back(request);
 	}
 	return true;
 }

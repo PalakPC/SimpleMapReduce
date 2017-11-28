@@ -20,17 +20,11 @@ struct file_data {
 	const char *file;
 };
 
-struct worker {
-	int id;
-	int cur_task;
-	std::string addr;
-};
-
 struct MapReduceSpec {
 	size_t granularity;
 	size_t size;
-	std::list<struct worker> worker_queue;
-	std::list<struct file_data> inputs;
+	std::vector<std::string> addrs;
+	std::vector<struct file_data> inputs;
 };
 
 enum mr_spec_type {
@@ -92,13 +86,9 @@ read_mr_spec_from_config_file(const std::string& config_filename,
 			break;
 		case IP_ADDRS:
 		{
-			int id = 0;
 			std::stringstream ss(value);
 			while(getline(ss, token, ',')) {
-				struct worker cur;
-				cur.id = cur.cur_task = id++;
-				cur.addr = token;
-				mr_spec.worker_queue.push_back(cur);
+				mr_spec.addrs.push_back(token);
 			}
 			break;
 		}
