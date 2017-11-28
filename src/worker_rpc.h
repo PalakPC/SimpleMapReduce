@@ -31,6 +31,10 @@ public:
 	void sendReduceRequest(ReduceRequest *req);
 };
 
+/* Each call struct contains a memory reference to the associated request
+ * and the worker. This allows us to update worker queues and outstanding
+ * tasks in the master process.
+ */
 struct AsyncMapCall {
 	WorkerRpc *worker;
 	MapRequest *request;

@@ -3,7 +3,7 @@ syntax = "proto3";
 package masterworker;
 
 service Mapper {
-	rpc map (MapRequest) returns (MapReply) {}	
+	rpc MapCall (MapRequest) returns (MapReply) {}	
 }
 
 message MapRequest {
@@ -17,16 +17,16 @@ message ShardInfo {
 }
 
 message MapReply {
-	repeated MapResults results = 1;
+	bool isComplete = 1;
+	repeated MapResults results = 2;
 }
 
 message MapResults {
-	string key = 1;
-	string file = 2;
+	string file_name = 1;
 }
 
 service Reducer {
-	rpc reduce (ReduceRequest) returns (ReduceReply) {}
+	rpc ReduceCall (ReduceRequest) returns (ReduceReply) {}
 }
 
 message ReduceRequest {

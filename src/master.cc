@@ -72,7 +72,7 @@ bool Master::manageMapTasks() {
 		 * within a single iteration and we recover a full set of workers.
 		 */
 		while (worker_queue.empty()) {
-
+			
 		}
 
 	}
