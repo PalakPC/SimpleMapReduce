@@ -72,7 +72,26 @@ bool Master::manageMapTasks() {
 		 * within a single iteration and we recover a full set of workers.
 		 */
 		while (worker_queue.empty()) {
+
+			void *tag;
+			bool ok;
+			AsyncMapCall *call;
+
+			/* Block until at least one worker is complete. May need to 
+			 * put a deadline here if all workers fail. Probably won't
+			 * be necessary though for the purposes of this project.
+			 */
+			GPR_ASSERT(cq.Next(&tag, &ok));
+			GPR_ASSERT(ok);
+			call = static_cast<AsyncMapCall*>(tag);
 			
+			worker_queue.push_back(call->worker);
+			pending_map_requests.erase(call->request);
+			completed_map_tasks++;
+
+			/* TODO: Use cq.AsyncNext() to check for any other completed
+			 * map tasks and remove them from the pending_map_requests.
+			 */
 		}
 
 	}
