@@ -10,10 +10,13 @@ Master::Master(const MapReduceSpec& mr_spec,
 	/* Create the woker queue */
 	for (int ii = 0; ii < mr_spec.addrs.size(); ii++) {
 
-		worker_queue.push_back(
+		WorkerRpc *worker =
 			new WorkerRpc(&cq, grpc::CreateChannel(
 					      mr_spec.addrs.at(ii),
-					      grpc::InsecureChannelCredentials())));
+					      grpc::InsecureChannelCredentials()));
+		workers.push_back(worker);
+		worker_queue.push_back(worker);
+		
 	}
 
 	/* Set up fresh batch of map requests to be submitted to workers. */
@@ -24,6 +27,12 @@ Master::Master(const MapReduceSpec& mr_spec,
 
 }
 
+std::chrono::system_clock::time_point tick(unsigned timeout) {
+	return std::chrono::system_clock::now() +
+		std::chrono::milliseconds(timeout);
+}
+
+
 bool Master::manageMapTasks() {
 
 	WorkerRpc *cur;
@@ -33,7 +42,7 @@ bool Master::manageMapTasks() {
 
 	while (completed_map_tasks < num_map_tasks) {
 
-		/* First ensure workers tackle new requests and hope the
+		/* First ensure free workers tackle new requests and hope the
 		 * stranglers complete when we collect completed map responses.
 		 */
 		while (!worker_queue.empty() && !new_map_requests.empty()) {
@@ -83,18 +92,36 @@ bool Master::manageMapTasks() {
 			 */
 			GPR_ASSERT(cq.Next(&tag, &ok));
 			GPR_ASSERT(ok);
+
 			call = static_cast<AsyncMapCall*>(tag);
-			
 			worker_queue.push_back(call->worker);
 			pending_map_requests.erase(call->request);
 			completed_map_tasks++;
 
-			/* TODO: Use cq.AsyncNext() to check for any other completed
-			 * map tasks and remove them from the pending_map_requests.
+			/* Wait 100ms for all remaining outstanding requests. If not
+			 * all arrive continue onward using performant workers.
 			 */
-		}
 
+			std::chrono::system_clock::time_point deadline = tick(100);
+			for (int ii = 0; ii < workers.size() - 1; ii++) {
+
+				GPR_ASSERT(cq.AsyncNext(&tag, &ok, tick(10)));
+				if (!ok)
+					continue;
+				
+				call = static_cast<AsyncMapCall*>(tag);
+				worker_queue.push_back(call->worker);
+				pending_map_requests.erase(call->request);
+				completed_map_tasks++;
+			}
+		}
 	}
+
+	/* Debug print to observe runtime behavior */
+	if (workers.size() != worker_queue.size()) {
+		std::cout << "Not all workers are currently reclaimed" << std::endl;
+ 	}
+
 	return true;
 }
 

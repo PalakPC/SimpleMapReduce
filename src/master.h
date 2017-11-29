@@ -13,11 +13,13 @@ class Master {
       
 private:
 	CompletionQueue cq;
+	std::vector<WorkerRpc*> workers;
 	std::list<WorkerRpc*> worker_queue;
 	std::list<MapRequest*> new_map_requests;
 	std::set<MapRequest*> pending_map_requests;
-	bool manageMapTasks();
-	bool manageReduceTasks();
+	std::chrono::system_clock::time_point tick(unsigned);
+	bool manageMapTasks(void);
+	bool manageReduceTasks(void);
 
 public:
 	/* DON'T change the function signature of this constructor */
