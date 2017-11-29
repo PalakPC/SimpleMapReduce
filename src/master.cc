@@ -37,10 +37,11 @@ bool Master::manageMapTasks() {
 
 	WorkerRpc *cur;
 	MapRequest *req;
-	int completed_map_tasks = 0;
-	int num_map_tasks = new_map_requests.size();
 
-	while (completed_map_tasks < num_map_tasks) {
+	/* While there are pending and new map request, submit map requests
+	 * to workers.
+	 */
+	while (!pending_map_requests.empty() && !new_map_requests.empty()) {
 
 		/* First ensure free workers tackle new requests and hope the
 		 * stranglers complete when we collect completed map responses.
@@ -76,11 +77,11 @@ bool Master::manageMapTasks() {
 			}
 		}
 
-		/* While all workers are assigned to map tasks, spin until at least
+		/* if all workers are assigned to map tasks, block until at least
 		 * one is complete. Hopefully, all outstanding requests complete
 		 * within a single iteration and we recover a full set of workers.
 		 */
-		while (worker_queue.empty()) {
+		if (worker_queue.empty()) {
 
 			void *tag;
 			bool ok;
@@ -96,7 +97,6 @@ bool Master::manageMapTasks() {
 			call = static_cast<AsyncMapCall*>(tag);
 			worker_queue.push_back(call->worker);
 			pending_map_requests.erase(call->request);
-			completed_map_tasks++;
 
 			/* Wait 100ms for all remaining outstanding requests. If not
 			 * all arrive continue onward using performant workers.
@@ -112,14 +112,16 @@ bool Master::manageMapTasks() {
 				call = static_cast<AsyncMapCall*>(tag);
 				worker_queue.push_back(call->worker);
 				pending_map_requests.erase(call->request);
-				completed_map_tasks++;
 			}
 		}
 	}
 
-	/* Debug print to observe runtime behavior */
+	/* You should provide a means to reap the stranglers as you
+	 * manage reduce tasks. Could make it another thread but that will force
+	 * probably force you to use a lock primitive??
+	 */
 	if (workers.size() != worker_queue.size()) {
-		std::cout << "Not all workers are currently reclaimed" << std::endl;
+		std::cout << "Insert a Reap Method Here!!!" << std::endl;
  	}
 
 	return true;
