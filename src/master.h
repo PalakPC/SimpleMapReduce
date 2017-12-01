@@ -12,14 +12,24 @@
 class Master {
       
 private:
+	/* Data Structures */
 	CompletionQueue cq;
 	std::vector<WorkerRpc*> workers;
-	std::list<WorkerRpc*> worker_queue;
+
+	/* Data Structures for managing mappers */
+	std::list<WorkerRpc*> mapper_queue;
 	std::list<MapRequest*> new_map_requests;
 	std::set<MapRequest*> pending_map_requests;
-	std::chrono::system_clock::time_point tick(unsigned);
+
+	/* Data Structures for managing reducers */
+	std::list<WorkerRpc*> reducer_queue;
+	std::list<ReduceRequest*> reduce_requests;
+	
+	/* Privte Memeber Functions */
 	bool manageMapTasks(void);
 	bool manageReduceTasks(void);
+	inline std::chrono::system_clock::time_point tick(unsigned wait_time);
+	inline void reap(unsigned wait_time);
 
 public:
 	/* DON'T change the function signature of this constructor */

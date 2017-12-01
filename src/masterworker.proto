@@ -22,7 +22,8 @@ message MapReply {
 }
 
 message MapResults {
-	string file_name = 1;
+	uint32 reducer_tag = 1;
+	string file_name = 2;
 }
 
 service Reducer {

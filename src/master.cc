@@ -15,7 +15,7 @@ Master::Master(const MapReduceSpec& mr_spec,
 					      mr_spec.addrs.at(ii),
 					      grpc::InsecureChannelCredentials()));
 		workers.push_back(worker);
-		worker_queue.push_back(worker);
+		mapper_queue.push_back(worker);
 		
 	}
 
@@ -27,9 +27,32 @@ Master::Master(const MapReduceSpec& mr_spec,
 
 }
 
-std::chrono::system_clock::time_point tick(unsigned timeout) {
+inline std::chrono::system_clock::time_point Master::tick(unsigned timeout) {
 	return std::chrono::system_clock::now() +
 		std::chrono::milliseconds(timeout);
+}
+
+inline void Master::reap(unsigned wait) {
+
+	if (mapper_queue.size() != workers.size()) {
+
+		std::chrono::system_clock::time_point deadline = tick(wait);
+		for (int ii = mapper_queue.size(); ii < workers.size() - 1; ii++) {
+
+			void *tag;
+			bool ok;
+			AsyncMapCall *call;
+			GPR_ASSERT(cq.AsyncNext(&tag, &ok, deadline));
+
+			if (!ok) {
+				std::cerr << "Recieved Errant Respnse in reap()"
+					  << std::endl;
+				continue;
+			}
+			call = static_cast<AsyncMapCall*>(tag);
+			mapper_queue.push_back(call->worker);
+		}
+	}
 }
 
 
@@ -46,10 +69,10 @@ bool Master::manageMapTasks() {
 		/* First ensure free workers tackle new requests and hope the
 		 * stranglers complete when we collect completed map responses.
 		 */
-		while (!worker_queue.empty() && !new_map_requests.empty()) {
+		while (!mapper_queue.empty() && !new_map_requests.empty()) {
 
-			cur = worker_queue.front();
-			worker_queue.pop_front();
+			cur = mapper_queue.front();
+			mapper_queue.pop_front();
 
 			req = new_map_requests.front();
 			new_map_requests.pop_front();
@@ -61,16 +84,16 @@ bool Master::manageMapTasks() {
 		/* Reassign free workers iff all new map requests have been
 		 * processed. We should no longer hope for stranglers to complete.
 		 */
-		if (!worker_queue.empty() && !pending_map_requests.empty()) {
+		if (!mapper_queue.empty() && !pending_map_requests.empty()) {
 
 			std::set<MapRequest*>::iterator it =
 				pending_map_requests.begin();
 
-			while (!worker_queue.empty() &&
+			while (!mapper_queue.empty() &&
 			       it != pending_map_requests.end()) {
 				
-				cur = worker_queue.front();
-				worker_queue.pop_front();
+				cur = mapper_queue.front();
+				mapper_queue.pop_front();
 
 				cur->sendMapRequest(*it);
 				it++;
@@ -81,7 +104,7 @@ bool Master::manageMapTasks() {
 		 * one is complete. Hopefully, all outstanding requests complete
 		 * within a single iteration and we recover a full set of workers.
 		 */
-		if (worker_queue.empty()) {
+		if (mapper_queue.empty()) {
 
 			void *tag;
 			bool ok;
@@ -95,7 +118,7 @@ bool Master::manageMapTasks() {
 			GPR_ASSERT(ok);
 
 			call = static_cast<AsyncMapCall*>(tag);
-			worker_queue.push_back(call->worker);
+			mapper_queue.push_back(call->worker);
 			pending_map_requests.erase(call->request);
 
 			/* Wait 100ms for all remaining outstanding requests. If not
@@ -105,26 +128,17 @@ bool Master::manageMapTasks() {
 			std::chrono::system_clock::time_point deadline = tick(100);
 			for (int ii = 0; ii < workers.size() - 1; ii++) {
 
-				GPR_ASSERT(cq.AsyncNext(&tag, &ok, tick(10)));
+				GPR_ASSERT(cq.AsyncNext(&tag, &ok, deadline));
 				if (!ok)
 					continue;
 				
 				call = static_cast<AsyncMapCall*>(tag);
-				worker_queue.push_back(call->worker);
+				mapper_queue.push_back(call->worker);
 				pending_map_requests.erase(call->request);
 			}
 		}
 	}
-
-	/* You should provide a means to reap the stranglers as you
-	 * manage reduce tasks. Could make it another thread but that will force
-	 * probably force you to use a lock primitive??
-	 */
-	if (workers.size() != worker_queue.size()) {
-		std::cout << "Insert a Reap Method Here!!!" << std::endl;
- 	}
-
-	return true;
+	return (reap(100), true); /* If there are any stranglers, wait 100 ms. */
 }
 
 
