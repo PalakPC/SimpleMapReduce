@@ -22,7 +22,7 @@ message MapReply {
 }
 
 message MapResults {
-	uint32 reducer_tag = 1;
+	string key_tag = 1;
 	string file_name = 2;
 }
 

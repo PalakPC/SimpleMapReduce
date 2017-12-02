@@ -11,14 +11,13 @@ Master::Master(const MapReduceSpec& mr_spec,
 	for (int ii = 0; ii < mr_spec.addrs.size(); ii++) {
 
 		WorkerRpc *worker =
-			new WorkerRpc(&cq, grpc::CreateChannel(
+			new WorkerRpc(grpc::CreateChannel(
 					      mr_spec.addrs.at(ii),
 					      grpc::InsecureChannelCredentials()));
-		workers.push_back(worker);
 		mapper_queue.push_back(worker);
-		
 	}
 
+	total_workers = mapper_queue.size();
 	/* Set up fresh batch of map requests to be submitted to workers. */
 	for (int ii = 0; ii < file_shards.size(); ii++) {
 		FileShard cur = file_shards.at(ii);
@@ -32,25 +31,22 @@ inline std::chrono::system_clock::time_point Master::tick(unsigned timeout) {
 		std::chrono::milliseconds(timeout);
 }
 
+
+/* Collect stranglers from map task and add them to reducer queue */
 inline void Master::reap(unsigned wait) {
 
-	if (mapper_queue.size() != workers.size()) {
+	if (mapper_queue.size() != total_workers) {
 
+		AsyncMapCall *call;
 		std::chrono::system_clock::time_point deadline = tick(wait);
-		for (int ii = mapper_queue.size(); ii < workers.size() - 1; ii++) {
+		
+		for (int ii = mapper_queue.size(); ii < total_workers; ii++) {
 
-			void *tag;
-			bool ok;
-			AsyncMapCall *call;
-			GPR_ASSERT(cq.AsyncNext(&tag, &ok, deadline));
+			call = WorkerRpc::recvMapResponseAsync(deadline);
+			if (!call)
+				return;
 
-			if (!ok) {
-				std::cerr << "Recieved Errant Respnse in reap()"
-					  << std::endl;
-				continue;
-			}
-			call = static_cast<AsyncMapCall*>(tag);
-			mapper_queue.push_back(call->worker);
+			reducer_queue.push_back(call->worker);
 		}
 	}
 }
@@ -86,17 +82,17 @@ bool Master::manageMapTasks() {
 		 */
 		if (!mapper_queue.empty() && !pending_map_requests.empty()) {
 
-			std::set<MapRequest*>::iterator it =
+			std::set<MapRequest*>::iterator iter =
 				pending_map_requests.begin();
 
 			while (!mapper_queue.empty() &&
-			       it != pending_map_requests.end()) {
+			       iter != pending_map_requests.end()) {
 				
 				cur = mapper_queue.front();
 				mapper_queue.pop_front();
 
-				cur->sendMapRequest(*it);
-				it++;
+				cur->sendMapRequest(*iter);
+				iter++;
 			}
 		}
 
@@ -106,39 +102,39 @@ bool Master::manageMapTasks() {
 		 */
 		if (mapper_queue.empty()) {
 
-			void *tag;
-			bool ok;
-			AsyncMapCall *call;
 
-			/* Block until at least one worker is complete. May need to 
-			 * put a deadline here if all workers fail. Probably won't
-			 * be necessary though for the purposes of this project.
-			 */
-			GPR_ASSERT(cq.Next(&tag, &ok));
-			GPR_ASSERT(ok);
-
-			call = static_cast<AsyncMapCall*>(tag);
+			/* Block until one mapper response arrives */
+			AsyncMapCall *call = WorkerRpc::recvMapResponseSync();
 			mapper_queue.push_back(call->worker);
 			pending_map_requests.erase(call->request);
 
 			/* Wait 100ms for all remaining outstanding requests. If not
 			 * all arrive continue onward using performant workers.
 			 */
-
 			std::chrono::system_clock::time_point deadline = tick(100);
-			for (int ii = 0; ii < workers.size() - 1; ii++) {
+			for (int ii = 0; ii < total_workers - 1; ii++) {
 
-				GPR_ASSERT(cq.AsyncNext(&tag, &ok, deadline));
-				if (!ok)
-					continue;
-				
-				call = static_cast<AsyncMapCall*>(tag);
+				call = WorkerRpc::recvMapResponseAsync(deadline);
+
+				/* Check for elapsed deadline */
+				if (!(call))
+					break;
+
 				mapper_queue.push_back(call->worker);
 				pending_map_requests.erase(call->request);
 			}
 		}
 	}
-	return (reap(100), true); /* If there are any stranglers, wait 100 ms. */
+
+	 /* Attempt to wait and collect stranglers placing them in reducer queue */
+	reap(100);
+
+	/* Set up reducer queue with all idle workers not collected in reap() */
+	for (std::list<WorkerRpc*>::iterator iter = mapper_queue.begin();
+	     iter != mapper_queue.end(); iter++) {
+		reducer_queue.push_back(*iter);
+	}
+	return true;
 }
 
 

@@ -12,15 +12,13 @@
 class Master {
       
 private:
-	/* Data Structures */
-	CompletionQueue cq;
-	std::vector<WorkerRpc*> workers;
+	unsigned total_workers;
 
 	/* Data Structures for managing mappers */
 	std::list<WorkerRpc*> mapper_queue;
 	std::list<MapRequest*> new_map_requests;
 	std::set<MapRequest*> pending_map_requests;
-
+	
 	/* Data Structures for managing reducers */
 	std::list<WorkerRpc*> reducer_queue;
 	std::list<ReduceRequest*> reduce_requests;
