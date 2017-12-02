@@ -17,9 +17,10 @@ Master::Master(const MapReduceSpec& mr_spec,
 		mapper_queue.push_back(worker);
 	}
 	
-	/* Set up fresh batch of map requests to be submitted to workers. */
-
 	total_workers = mapper_queue.size();
+	output_path = mr_spec.outdir + "/";
+	
+	/* Set up fresh batch of map requests to be submitted to workers. */
 	for (int ii = 0; ii < file_shards.size(); ii++) {
 		FileShard cur = file_shards.at(ii);
 		new_map_requests.push_back(&cur.shards);
@@ -52,6 +53,10 @@ inline void Master::reap(unsigned wait) {
 	}
 }
 
+inline std::string Master::genOutFile(std::string key) {
+	return output_path + key + "_output";
+}
+
 void Master::updateReduceMap(AsyncMapCall *call) {
 
 	/* If a map request is still in the pending set, then the results 
@@ -73,6 +78,9 @@ void Master::updateReduceMap(AsyncMapCall *call) {
 			if (key_reduce_map.find(key) == key_reduce_map.end()) {
 
 				reduce_req = new ReduceRequest();
+				reduce_req->set_key_tag(key);
+				reduce_req->set_out_file(genOutFile(key));
+
 				std::pair<std::string, ReduceRequest*>
 					pair(key, reduce_req);
 				key_reduce_map.insert(pair);
@@ -84,8 +92,7 @@ void Master::updateReduceMap(AsyncMapCall *call) {
 			}
 
 			ReduceBatch *batch = reduce_req->add_batch();
-			batch->set_key_id(key);
-			batch->set_file_name(file);
+			batch->set_in_file(file);
 		}
 	}
 
@@ -178,6 +185,27 @@ bool Master::manageMapTasks() {
 
 
 bool Master::manageReduceTasks() {
+
+	/* Send all reduce requests. Simply wrap around reducers if 
+	 * number of keys/output files exceeds the number of reducers.
+	 */
+	std::map<std::string, ReduceRequest*>::iterator iter = key_reduce_map.begin();
+	int index = 0;
+	while (iter != key_reduce_map.end()) {
+		WorkerRpc *cur = reducer_queue.at(index % reducer_queue.size());
+		cur->sendReduceRequest(iter->second);
+		(index++, iter++);
+	}
+
+	/* Wait for all reducers to ack that they sucessfully complted 
+	 * their respective reduce tasks. If one fails, return false.
+	 * Might extend later to handle system failures or set up timer.
+	 */
+	for (int ii = 0; ii < key_reduce_map.size(); ii++) {
+		AsyncReduceCall *call = WorkerRpc::recvReduceResponseSync();
+		if (!call->reply.iscomplete())
+			return false;
+	}
 	return true;
 }
 

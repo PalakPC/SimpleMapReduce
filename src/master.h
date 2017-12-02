@@ -13,6 +13,7 @@ class Master {
       
 private:
 	unsigned total_workers;
+	std::string output_path;
 
 	/* Data Structures for managing mappers */
 	std::list<WorkerRpc*> mapper_queue;
@@ -20,8 +21,7 @@ private:
 	std::set<MapRequest*> pending_map_requests;
 	
 	/* Data Structures for managing reducers */
-	std::list<WorkerRpc*> reducer_queue;
-	std::list<ReduceRequest*> reduce_requests;
+	std::vector<WorkerRpc*> reducer_queue;
 	std::map<std::string, ReduceRequest*> key_reduce_map;
 	
 	/* Privte Memeber Functions */
@@ -29,6 +29,7 @@ private:
 	bool manageMapTasks(void);
 	bool manageReduceTasks(void);
 	inline std::chrono::system_clock::time_point tick(unsigned wait_time);
+	inline std::string genOutFile(std::string key);
 	inline void reap(unsigned wait_time);
 
 public:

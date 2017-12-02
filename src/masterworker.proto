@@ -30,14 +30,15 @@ service Reducer {
 }
 
 message ReduceRequest {
-	repeated ReduceBatch batch = 1;
+	string key_tag = 1;
+	string out_file = 2;
+	repeated ReduceBatch batch = 3;
 }
 
 message ReduceBatch {
-	string key_id = 1;
-	string file_name = 2;
+	string in_file = 1;
 }
 
 message ReduceReply {
-	string bar = 1;
+	bool isComplete = 1;
 }
