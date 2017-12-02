@@ -17,7 +17,6 @@ message ShardInfo {
 }
 
 message MapReply {
-	bool isComplete = 1;
 	repeated MapResults results = 2;
 }
 
@@ -31,7 +30,12 @@ service Reducer {
 }
 
 message ReduceRequest {
-	string foo = 1;
+	repeated ReduceBatch batch = 1;
+}
+
+message ReduceBatch {
+	string key_id = 1;
+	string file_name = 2;
 }
 
 message ReduceReply {

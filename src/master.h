@@ -22,8 +22,10 @@ private:
 	/* Data Structures for managing reducers */
 	std::list<WorkerRpc*> reducer_queue;
 	std::list<ReduceRequest*> reduce_requests;
+	std::map<std::string, ReduceRequest*> key_reduce_map;
 	
 	/* Privte Memeber Functions */
+	void updateReduceMap(AsyncMapCall *call);
 	bool manageMapTasks(void);
 	bool manageReduceTasks(void);
 	inline std::chrono::system_clock::time_point tick(unsigned wait_time);

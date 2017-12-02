@@ -16,9 +16,10 @@ Master::Master(const MapReduceSpec& mr_spec,
 					      grpc::InsecureChannelCredentials()));
 		mapper_queue.push_back(worker);
 	}
+	
+	/* Set up fresh batch of map requests to be submitted to workers. */
 
 	total_workers = mapper_queue.size();
-	/* Set up fresh batch of map requests to be submitted to workers. */
 	for (int ii = 0; ii < file_shards.size(); ii++) {
 		FileShard cur = file_shards.at(ii);
 		new_map_requests.push_back(&cur.shards);
@@ -49,6 +50,47 @@ inline void Master::reap(unsigned wait) {
 			reducer_queue.push_back(call->worker);
 		}
 	}
+}
+
+void Master::updateReduceMap(AsyncMapCall *call) {
+
+	/* If a map request is still in the pending set, then the results 
+	 * brand new. Otherwise, results are old and simply delete the call.
+	 */
+	if (pending_map_requests.find(call->request) !=
+	    pending_map_requests.end()) {
+		pending_map_requests.erase(call->request);
+
+		MapReply reply = call->reply;
+		for (int ii = 0; ii < reply.results_size(); ii++) {
+
+			ReduceRequest *reduce_req = NULL;
+			MapResults result = reply.results(ii);
+			std::string key = result.key_tag();
+			std::string file = result.file_name();
+			
+			/* Check for a new entry and insert if not present */
+			if (key_reduce_map.find(key) == key_reduce_map.end()) {
+
+				reduce_req = new ReduceRequest();
+				std::pair<std::string, ReduceRequest*>
+					pair(key, reduce_req);
+				key_reduce_map.insert(pair);
+			}
+
+			/* Key was already set. Get the developing request. */
+			if (!reduce_req) {
+				reduce_req = key_reduce_map.find(key)->second;
+			}
+
+			ReduceBatch *batch = reduce_req->add_batch();
+			batch->set_key_id(key);
+			batch->set_file_name(file);
+		}
+	}
+
+	mapper_queue.push_back(call->worker);
+	delete call;
 }
 
 
@@ -105,8 +147,7 @@ bool Master::manageMapTasks() {
 
 			/* Block until one mapper response arrives */
 			AsyncMapCall *call = WorkerRpc::recvMapResponseSync();
-			mapper_queue.push_back(call->worker);
-			pending_map_requests.erase(call->request);
+			updateReduceMap(call);
 
 			/* Wait 100ms for all remaining outstanding requests. If not
 			 * all arrive continue onward using performant workers.
@@ -119,9 +160,7 @@ bool Master::manageMapTasks() {
 				/* Check for elapsed deadline */
 				if (!(call))
 					break;
-
-				mapper_queue.push_back(call->worker);
-				pending_map_requests.erase(call->request);
+				updateReduceMap(call);
 			}
 		}
 	}

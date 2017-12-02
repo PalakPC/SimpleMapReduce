@@ -14,8 +14,11 @@ using masterworker::Mapper;
 using masterworker::Reducer;
 using masterworker::MapRequest;
 using masterworker::MapReply;
+using masterworker::MapResults;
 using masterworker::ReduceRequest;
+using masterworker::ReduceBatch;
 using masterworker::ReduceReply;
+
 
 
 /* Forward declaration */
