@@ -1,15 +1,14 @@
 #include "worker_rpc.h"
 
 WorkerRpc::WorkerRpc(std::shared_ptr<Channel> channel) :
-	map_stub(Mapper::NewStub(channel)),
-	reduce_stub(Reducer::NewStub(channel)) {}
+        stub(MapperReducer::NewStub(channel)) {}
 
 void WorkerRpc::sendMapRequest(MapRequest *req) {
 
 	AsyncMapCall *call = new AsyncMapCall;
 	call->worker = this;
 	call->request = req;
-	call->reader = map_stub->PrepareAsyncMapCall(
+	call->reader = stub->PrepareAsyncMapCall(
 		&call->context, *req, &mcq);
 
 	call->reader->StartCall();
@@ -21,7 +20,7 @@ void WorkerRpc::sendReduceRequest(ReduceRequest *req) {
 	AsyncReduceCall *call = new AsyncReduceCall;
 	call->worker = this;
 	call->request = req;
-	call->reader = reduce_stub->PrepareAsyncReduceCall(
+	call->reader = stub->PrepareAsyncReduceCall(
 		&call->context, *req, &rcq);
 	call->reader->StartCall();
 	call->reader->Finish(&call->reply, &call->status, (void*) call);

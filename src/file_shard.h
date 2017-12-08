@@ -2,7 +2,7 @@
 
 #include "masterworker.grpc.pb.h"
 
-using masterworker::Mapper;
+using masterworker::MapperReducer;
 using masterworker::MapRequest;
 using masterworker::MapReply;
 using masterworker::ShardInfo;

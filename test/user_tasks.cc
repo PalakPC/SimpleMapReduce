@@ -16,7 +16,7 @@ class UserMapper : public BaseMapper {
 			char *start = strtok (c_input, delims);
 			while (start != NULL) {
 				emit(start, "1");
-			    start = strtok (NULL, delims);
+				start = strtok (NULL, delims);
 			}
 			delete[] c_input;
 		}

@@ -1,25 +1,7 @@
 #pragma once
 
-#include <grpc++/grpc++.h>
-#include <grpc/support/log.h>
 #include "masterworker.grpc.pb.h"
-
-using grpc::Channel;
-using grpc::ClientAsyncResponseReader;
-using grpc::CompletionQueue;
-using grpc::ClientContext;
-using grpc::Status;
-
-using masterworker::Mapper;
-using masterworker::Reducer;
-using masterworker::MapRequest;
-using masterworker::MapReply;
-using masterworker::MapResults;
-using masterworker::ReduceRequest;
-using masterworker::ReduceBatch;
-using masterworker::ReduceReply;
-
-
+#include "call_data.h"
 
 /* Forward declaration */
 class WorkerRpc;
@@ -47,8 +29,7 @@ class WorkerRpc {
 private:
 	static CompletionQueue mcq;
 	static CompletionQueue rcq;
-	std::unique_ptr<Mapper::Stub> map_stub;
-	std::unique_ptr<Reducer::Stub> reduce_stub;
+	std::unique_ptr<MapperReducer::Stub> stub;
 
 public:
 	/* Instance Functions for each worker */
@@ -65,3 +46,4 @@ public:
 	static AsyncReduceCall * recvReduceResponseAsync(
 		std::chrono::system_clock::time_point deadline);
 };
+
