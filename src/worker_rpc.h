@@ -27,13 +27,14 @@ struct AsyncReduceCall {
 class WorkerRpc {
 
 private:
+	unsigned worker_id;
 	static CompletionQueue mcq;
 	static CompletionQueue rcq;
 	std::unique_ptr<MapperReducer::Stub> stub;
 
 public:
 	/* Instance Functions for each worker */
-	WorkerRpc(std::shared_ptr<Channel> channel);
+	WorkerRpc(unsigned id, std::shared_ptr<Channel> channel);
 	void sendMapRequest(MapRequest *req);
 	void sendReduceRequest(ReduceRequest *req);
 

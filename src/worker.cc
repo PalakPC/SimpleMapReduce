@@ -30,47 +30,47 @@ bool Worker::recvMapRequest(void) {
 
 
 
-bool Worker::processMapRequest(void) {
+void Worker::processMapRequest(void) {
 
-	if (!mcall->isActive()) {
-		mcall->terminate();
-		mcall = new MapCallData();
-		return;
-	}
+// 	if (!mcall->isActive()) {
+// 		mcall->terminate();
+// 		mcall = new MapCallData();
+// 		return;
+// 	}
 
-	/* Create unique output file steams */
-	unsinged num_ifiles = mcall->request.num_reducers();
+// 	/* Create unique output file steams */
+// 	unsinged num_ifiles = mcall->request.num_reducers();
 	
-	std::vector<std::string> ifile_names;
-	std::vector<ofstream> streams(num_ifiles);
+// 	std::vector<std::string> ifile_names;
+// 	std::vector<ofstream> streams(num_ifiles);
 	
-	for (unsigned ii = 0; ii < num_ifiles; ii++) {
+// 	for (unsigned ii = 0; ii < num_ifiles; ii++) {
 		
-		ofstream ifile = streams.at(ii);
-		std::string ifile_name = getUniqueFile(ii);		
-		ifile.open(ifile_name);
+// 		ofstream ifile = streams.at(ii);
+// 		std::string ifile_name = getUniqueFile(ii);		
+// 		ifile.open(ifile_name);
 
-		if (!ifile.is_open()) {
-			goto clean_up;
-		}
-	}
-	auto mapper = get_mapper_from_task_factory("cs6210");
-	mapper->impl_->set_outputs(streams);
+// 		if (!ifile.is_open()) {
+// 			goto clean_up;
+// 		}
+// 	}
+// 	auto mapper = get_mapper_from_task_factory("cs6210");
+// 	mapper->impl_->set_outputs(streams);
 	
-	/* TODO: Open and process shards. */
+// 	/* TODO: Open and process shards. */
 	
-	num_mappings_processed++;
+// 	num_mappings_processed++;
 	
-clean_up:
-	for (unsinged ii = 0; ii < num_ifiles; ii++) {
-		ofstream ifile = streams.at(ii);
-		if (!ifile.is_open)
-			return;
-		ifile.close();
-	}
+// clean_up:
+// 	for (unsinged ii = 0; ii < num_ifiles; ii++) {
+// 		ofstream ifile = streams.at(ii);
+// 		if (!ifile.is_open)
+// 			return;
+// 		ifile.close();
+// 	}
 }
 
-std::string Worker::genUniqueFile(unsinged tag) {
+std::string Worker::genUniqueFile(unsigned tag) {
 	
 	std::string out_file = addr_port +
 		std::to_string(num_mappings_processed) +

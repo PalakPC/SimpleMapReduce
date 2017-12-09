@@ -18,7 +18,7 @@ using masterworker::ShardInfo;
  * the tasks to the workers for mapping
  */
 struct FileShard {
-	MapRequest shards;
+	MapRequest mapRequest;
 };
 
 
@@ -30,37 +30,38 @@ shard_files(const MapReduceSpec& mr_spec,
 	    std::vector<FileShard>& fileShards)
 {
 	const size_t gran = mr_spec.granularity << 10; /* KB --> bytes */
-	size_t num_shards = (mr_spec.size + (gran - 1)) / gran;
+	size_t num_shards = (mr_spec.size + (gran - 1)) / gran; /* Round up */
 
-	size_t begin = 0u;
+	size_t file_offset = 0u;
 	struct file_data cur = mr_spec.inputs.front();
+	for(unsigned map_id = 0u; map_id < num_shards; map_id++) {
 
-	for(unsigned ii = 0u; ii < num_shards; ii++) {
+		FileShard fileShard;
+		MapRequest *map_req = &fileShard.mapRequest;
+		map_req->set_mapper_id(map_id);
 
-		FileShard request;
 		size_t to_read = gran;
-
 		while (to_read) {
-			
-			ShardInfo *si = request.shards.add_shards();
-			si->set_file_name(cur.file);
-			si->set_begin(begin);
 
-			if (to_read >= (cur.stats.st_size - begin)) {
+			ShardInfo *shardInfo = map_req->add_shard();
+			shardInfo->set_file_name(cur.file);
+			shardInfo->set_begin(file_offset);
 
-				si->set_end(cur.stats.st_size);
-				begin = 0u;
-				to_read -= cur.stats.st_size - begin;
+			if (to_read >= (cur.stats.st_size - file_offset)) {
+
+				shardInfo->set_end(cur.stats.st_size);
+				to_read -= cur.stats.st_size - file_offset;
+				file_offset = 0u;
 				cur = mr_spec.inputs.front();
 
 			} else {
-				
-				si->set_end(begin + to_read);
-				begin += to_read;
+
+				file_offset += to_read;
+				shardInfo->set_end(file_offset);
 				to_read = 0u;
 			}
 		}
-		fileShards.push_back(request);
+		fileShards.push_back(fileShard);
 	}
 	return true;
 }

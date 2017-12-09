@@ -9,7 +9,9 @@ service MapperReducer {
 
 message MapRequest {
 	uint32 num_reducers = 1;
-	repeated ShardInfo shards = 2;
+	uint32 worker_id = 2;
+	uint32 mapper_id = 3;
+	repeated ShardInfo shard = 4;
 }
 
 message ShardInfo {
@@ -19,22 +21,13 @@ message ShardInfo {
 }
 
 message MapReply {
-	repeated MapResults results = 1;
-}
-
-message MapResults {
-	string key_tag = 1;
-	string file_name = 2;
+	repeated string ifiles = 1;
 }
 
 message ReduceRequest {
-	string key_tag = 1;
-	string out_file = 2;
-	repeated ReduceBatch batch = 3;
-}
-
-message ReduceBatch {
-	string in_file = 1;
+	uint32 worker_id = 1;
+	uint32 reducer_id = 2;
+	repeated string files = 3;
 }
 
 message ReduceReply {

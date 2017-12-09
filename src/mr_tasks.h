@@ -2,7 +2,6 @@
 
 #include <string>
 #include <iostream>
-#include <ofstream>
 
 /* CS6210_TASK Implement this data structureas per your implementation.
  * You will need this when your worker is running the map task. Note:
@@ -21,15 +20,7 @@ struct BaseMapperInternal {
 	/* DON'T change this function's signature */
 	void emit(const std::string& key, const std::string& val);
 
-	/* Data Structures and Methods: You need to set up 
-	 * an array of
-	 */
-	void set_outputs(std::vector<ofstream>)
-	struct key_pair {
-		std::string key;
-		std::string value;
-	};
-	std::queue<key_pair> key_pair_elements;
+	/* Data structures you can add here. */
 };
 
 
@@ -49,8 +40,6 @@ inline void BaseMapperInternal::emit(const std::string& key,
 	 * We need to associate a key with an intermediate file. Need
 	 * to add data structures on base mapper internal to get
 	 */
-	key_pair element(key, val);
-	elements.push_back(element);
 }
 
 

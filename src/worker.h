@@ -3,7 +3,6 @@
 #include <mr_task_factory.h>
 #include "mr_tasks.h"
 #include "call_data.h"
-#include <ofstream>
 
 /* CS6210_TASK: Handle all the task a Worker is supposed to do.
  * This is a big task for this project, will test your understanding

@@ -13,9 +13,7 @@ using grpc::Status;
 using masterworker::MapperReducer;
 using masterworker::MapRequest;
 using masterworker::MapReply;
-using masterworker::MapResults;
 using masterworker::ReduceRequest;
-using masterworker::ReduceBatch;
 using masterworker::ReduceReply;
 
 using grpc::Server;

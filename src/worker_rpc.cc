@@ -1,7 +1,7 @@
 #include "worker_rpc.h"
 
-WorkerRpc::WorkerRpc(std::shared_ptr<Channel> channel) :
-        stub(MapperReducer::NewStub(channel)) {}
+WorkerRpc::WorkerRpc(unsigned id, std::shared_ptr<Channel> channel) :
+        worker_id(id), stub(MapperReducer::NewStub(channel)) {}
 
 void WorkerRpc::sendMapRequest(MapRequest *req) {
 

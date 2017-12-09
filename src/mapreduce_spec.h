@@ -7,7 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <istream>
-#include <map>
+#include <unordered_map>
 #include <sys/stat.h>
 
 #define LINE 512
@@ -21,6 +21,7 @@ struct file_data {
 };
 
 struct MapReduceSpec {
+	unsigned num_reducers;
 	size_t granularity;
 	size_t size;
 	std::string outdir;
@@ -33,17 +34,19 @@ enum mr_spec_type {
 	SHARD_GRANULARITY,
 	OUTPUT_DIR,
 	IP_ADDRS,
-	INPUT_FILES
+	INPUT_FILES,
+	NUM_REDUCERS,
 };
 
 inline mr_spec_type
 resolve_mr_type(std::string type)
 {
-	static const std::map<std::string, mr_spec_type> mapper {
+	static const std::unordered_map<std::string, mr_spec_type> mapper {
 		{"worker_ipaddr_ports", IP_ADDRS},
 		{"input_files", INPUT_FILES},
 		{"map_kilobytes", SHARD_GRANULARITY},
-		{"output_dir", OUTPUT_DIR}
+		{"output_dir", OUTPUT_DIR},		
+		{"n_output_files", NUM_REDUCERS}
 	};
 
 	auto iter = mapper.find(type);
@@ -88,7 +91,7 @@ read_mr_spec_from_config_file(const std::string& config_filename,
 			mr_spec.granularity = stoi(value);
 			break;
 		case OUTPUT_DIR:
-			mr_spec.outdir = std::string(value);
+			mr_spec.outdir = std::string(value) + "/";
 			break;
 		case IP_ADDRS:
 		{
@@ -115,6 +118,9 @@ read_mr_spec_from_config_file(const std::string& config_filename,
 			}
 			break;
 		}
+		case NUM_REDUCERS:
+			mr_spec.num_reducers = stoi(value);
+			break;
 		case CONFIG_IGNORE:
 			break;
 		}

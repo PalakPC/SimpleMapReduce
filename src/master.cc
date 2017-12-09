@@ -5,27 +5,26 @@
  * here if you want.
  */
 Master::Master(const MapReduceSpec& mr_spec,
-	       const std::vector<FileShard>& file_shards) {
+	       const std::vector<FileShard>& file_shards) :
+	total_workers(mr_spec.addrs.size()),
+	output_path(mr_spec.outdir),
+	reduce_requests(mr_spec.num_reducers) {
 
 	/* Create the woker queue */
-	for (int ii = 0; ii < mr_spec.addrs.size(); ii++) {
+	for (unsigned ii = 0; ii < mr_spec.addrs.size(); ii++) {
 
 		WorkerRpc *worker =
-			new WorkerRpc(grpc::CreateChannel(
+			new WorkerRpc(ii, grpc::CreateChannel(
 					      mr_spec.addrs.at(ii),
 					      grpc::InsecureChannelCredentials()));
 		mapper_queue.push_back(worker);
 	}
-	
-	total_workers = mapper_queue.size();
-	output_path = mr_spec.outdir + "/";
-	
+
 	/* Set up fresh batch of map requests to be submitted to workers. */
 	for (int ii = 0; ii < file_shards.size(); ii++) {
-		FileShard cur = file_shards.at(ii);
-		new_map_requests.push_back(&cur.shards);
+		FileShard file_shard = file_shards.at(ii);
+		new_map_requests.push_back(&file_shard.mapRequest);
 	}
-
 }
 
 inline std::chrono::system_clock::time_point Master::tick(unsigned timeout) {
@@ -35,7 +34,7 @@ inline std::chrono::system_clock::time_point Master::tick(unsigned timeout) {
 
 
 /* Collect stranglers from map task and add them to reducer queue */
-inline void Master::reap(unsigned wait) {
+inline void Master::reap_old_map_requests(unsigned wait) {
 
 	if (mapper_queue.size() != total_workers) {
 
@@ -45,10 +44,19 @@ inline void Master::reap(unsigned wait) {
 		for (int ii = mapper_queue.size(); ii < total_workers; ii++) {
 
 			call = WorkerRpc::recvMapResponseAsync(deadline);
-			if (!call)
+			if (!call) /* Elapsed Deadline */
 				return;
 
+			MapReply old_reply = call->reply;
+			for (int ii = 0; ii < old_reply.ifiles_size(); ii++) {
+				std::string ifile = old_reply.ifiles(ii);
+				if (!ifile.empty()) {
+					std::remove(ifile.c_str());
+				}
+			}
+			mapper_queue.push_back(call->worker);
 			reducer_queue.push_back(call->worker);
+			delete call;
 		}
 	}
 }
@@ -57,42 +65,36 @@ inline std::string Master::genOutFile(std::string key) {
 	return output_path + key + "_output";
 }
 
-void Master::updateReduceMap(AsyncMapCall *call) {
+void Master::updateReduceRequests(AsyncMapCall *call) {
 
-	/* If a map request is still in the pending set, then the results 
-	 * brand new. Otherwise, results are old and simply delete the call.
+	/* If a map request is still in the pending set, then the results are
+	 * brand new. Otherwise, results are old and simply delete the call
+	 * along with the produced intermediate files.
 	 */
 	if (pending_map_requests.find(call->request) !=
 	    pending_map_requests.end()) {
+
 		pending_map_requests.erase(call->request);
 
-		MapReply reply = call->reply;
-		for (int ii = 0; ii < reply.results_size(); ii++) {
+		MapReply new_reply = call->reply;
+		for (unsigned ii = 0; ii < new_reply.ifiles_size(); ii++) {
 
-			ReduceRequest *reduce_req = NULL;
-			MapResults result = reply.results(ii);
-			std::string key = result.key_tag();
-			std::string file = result.file_name();
-			
-			/* Check for a new entry and insert if not present */
-			if (key_reduce_map.find(key) == key_reduce_map.end()) {
-
-				reduce_req = new ReduceRequest();
-				reduce_req->set_key_tag(key);
-				reduce_req->set_out_file(genOutFile(key));
-
-				std::pair<std::string, ReduceRequest*>
-					pair(key, reduce_req);
-				key_reduce_map.insert(pair);
+			ReduceRequest reduce_req = reduce_requests.at(ii);
+			std::string ifile = new_reply.ifiles(ii);
+			if (!ifile.empty()) {
+				reduce_req.add_files(ifile.c_str());
 			}
+		}
 
-			/* Key was already set. Get the developing request. */
-			if (!reduce_req) {
-				reduce_req = key_reduce_map.find(key)->second;
+	} else {
+
+		MapReply discard_reply = call->reply;
+		for (unsigned ii = 0; ii < discard_reply.ifiles_size(); ii++) {
+
+			std::string dup_ifile = discard_reply.ifiles(ii);
+			if (!dup_ifile.empty()) {
+				std::remove(dup_ifile.c_str());
 			}
-
-			ReduceBatch *batch = reduce_req->add_batch();
-			batch->set_in_file(file);
 		}
 	}
 
@@ -103,7 +105,7 @@ void Master::updateReduceMap(AsyncMapCall *call) {
 
 bool Master::manageMapTasks() {
 
-	WorkerRpc *cur;
+	WorkerRpc *mapper;
 	MapRequest *req;
 
 	/* While there are pending and new map request, submit map requests
@@ -116,14 +118,14 @@ bool Master::manageMapTasks() {
 		 */
 		while (!mapper_queue.empty() && !new_map_requests.empty()) {
 
-			cur = mapper_queue.front();
+			mapper = mapper_queue.front();
 			mapper_queue.pop_front();
 
 			req = new_map_requests.front();
 			new_map_requests.pop_front();
 
-			cur->sendMapRequest(req);
 			pending_map_requests.insert(req);
+			mapper->sendMapRequest(req);
 		}
 
 		/* Reassign free workers iff all new map requests have been
@@ -131,54 +133,44 @@ bool Master::manageMapTasks() {
 		 */
 		if (!mapper_queue.empty() && !pending_map_requests.empty()) {
 
-			std::set<MapRequest*>::iterator iter =
+			std::unordered_set<MapRequest*>::iterator iter =
 				pending_map_requests.begin();
 
 			while (!mapper_queue.empty() &&
 			       iter != pending_map_requests.end()) {
-				
-				cur = mapper_queue.front();
+
+				mapper = mapper_queue.front();
 				mapper_queue.pop_front();
 
-				cur->sendMapRequest(*iter);
+				mapper->sendMapRequest(*iter);
 				iter++;
+				
 			}
 		}
 
-		/* if all workers are assigned to map tasks, block until at least
-		 * one is complete. Hopefully, all outstanding requests complete
-		 * within a single iteration and we recover a full set of workers.
-		 */
+		AsyncMapCall *call;
 		if (mapper_queue.empty()) {
+			call = WorkerRpc::recvMapResponseSync();
+			updateReduceRequests(call);
+		}
 
-
-			/* Block until one mapper response arrives */
-			AsyncMapCall *call = WorkerRpc::recvMapResponseSync();
-			updateReduceMap(call);
-
-			/* Wait 100ms for all remaining outstanding requests. If not
-			 * all arrive continue onward using performant workers.
-			 */
-			std::chrono::system_clock::time_point deadline = tick(100);
-			for (int ii = 0; ii < total_workers - 1; ii++) {
-
-				call = WorkerRpc::recvMapResponseAsync(deadline);
-
-				/* Check for elapsed deadline */
-				if (!(call))
-					break;
-				updateReduceMap(call);
-			}
+		/* Wait 100ms for all remaining outstanding requests. If not
+		 * all arrive, continue onward using available workers.
+		 */
+		std::chrono::system_clock::time_point deadline = tick(100);
+		call = WorkerRpc::recvMapResponseAsync(deadline);
+		while (call) {
+			updateReduceRequests(call);
+			call = WorkerRpc::recvMapResponseAsync(deadline);
 		}
 	}
 
-	 /* Attempt to wait and collect stranglers placing them in reducer queue */
-	reap(100);
-
-	/* Set up reducer queue with all idle workers not collected in reap() */
 	for (std::list<WorkerRpc*>::iterator iter = mapper_queue.begin();
 	     iter != mapper_queue.end(); iter++) {
 		reducer_queue.push_back(*iter);
+	}
+	for (int ii = 0; ii < reduce_requests.size(); ii++) {
+		new_reduce_requests.push_back(&reduce_requests.at(ii));
 	}
 	return true;
 }
@@ -186,29 +178,61 @@ bool Master::manageMapTasks() {
 
 bool Master::manageReduceTasks() {
 
-	/* Send all reduce requests. Simply wrap around reducers if 
-	 * number of keys/output files exceeds the number of reducers.
-	 */
-	std::map<std::string, ReduceRequest*>::iterator iter = key_reduce_map.begin();
-	int index = 0;
-	while (iter != key_reduce_map.end()) {
-		WorkerRpc *cur = reducer_queue.at(index % reducer_queue.size());
-		cur->sendReduceRequest(iter->second);
-		(index++, iter++);
-	}
+	WorkerRpc *reducer;
+	while (!new_reduce_requests.empty() &&
+	       !pending_reduce_requests.empty()) {
 
-	/* Wait for all reducers to ack that they sucessfully complted 
-	 * their respective reduce tasks. If one fails, return false.
-	 * Might extend later to handle system failures or set up timer.
-	 */
-	for (int ii = 0; ii < key_reduce_map.size(); ii++) {
-		AsyncReduceCall *call = WorkerRpc::recvReduceResponseSync();
-		if (!call->reply.iscomplete())
-			return false;
+		while (!reducer_queue.empty() &&
+		       !new_reduce_requests.empty()) {
+
+			ReduceRequest *new_reduce_req;
+			reducer = reducer_queue.front();
+			reducer_queue.pop_front();
+
+			new_reduce_req = new_reduce_requests.front();
+			new_reduce_requests.pop_front();
+
+			reducer->sendReduceRequest(new_reduce_req);
+		}
+
+		if (!reducer_queue.empty() &&
+		    !pending_reduce_requests.empty()) {
+
+			std::unordered_set<ReduceRequest*>::iterator iter =
+				pending_reduce_requests.begin();
+
+			while (!reducer_queue.empty() &&
+			       iter != pending_reduce_requests.end()) {
+
+				reducer = reducer_queue.front();
+				reducer_queue.pop_front();
+
+				reducer->sendReduceRequest(*iter);
+				iter++;
+			}
+		}
+
+		reap_old_map_requests(100);
+
+		AsyncReduceCall *call;
+		if (reducer_queue.empty()) {
+			call = WorkerRpc::recvReduceResponseSync();
+			processReducerOutput(call);
+		}
+
+		std::chrono::system_clock::time_point deadline = tick(100);
+		call = WorkerRpc::recvReduceResponseAsync(deadline);
+		while (call) {
+			processReducerOutput(call);
+			call = WorkerRpc::recvReduceResponseAsync(deadline);
+		}
 	}
 	return true;
 }
 
+void Master::processReducerOutput(AsyncReduceCall *call) {
+	return;
+}
 
 /* CS621_TASK: Here you go. once this function is called you will complete
  * whole map reduce task and return true if succeeded.
