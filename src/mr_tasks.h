@@ -56,6 +56,8 @@ struct BaseReducerInternal {
 	/* NOW you can add below, data members and member functions
 	 * as per the need of your implementation
 	 */
+
+   std::string out_file_name;
 };
 
 
@@ -68,6 +70,12 @@ inline BaseReducerInternal::BaseReducerInternal() {
 /* CS6210_TASK Implement this function */
 inline void BaseReducerInternal::emit(const std::string& key,
 				      const std::string& val) {
-	std::cout << "Dummy emit by BaseReducerInternal: "
+	/*std::cout << "Dummy emit by BaseReducerInternal: "
 		  << key << ", " << val << std::endl;
+    */
+
+   std::ofstream file;
+   file.open(out_file_name, std::ios_base::app);
+   file << (key + "," + val + "\n");
+   file.close();
 }

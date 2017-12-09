@@ -28,7 +28,14 @@ bool Worker::recvMapRequest(void) {
 	return (tag == (void*) mcall);
 }
 
+bool Worker::recvReduceRequest(void) {
 
+	void *tag;
+	bool ok;
+	queue->Next(&tag, &ok);
+	GPR_ASSERT(ok);
+	return (tag == (void*) rcall);
+}
 
 void Worker::processMapRequest(void) {
 
@@ -45,7 +52,48 @@ void Worker::processMapRequest(void) {
 		Flusher map_flusher(&map_reply, 2048); /*Wiil fix!!!!!!!!!*/
 		mapper->impl_->map_flusher = &map_flusher;
 
-		/* Add logic for file seeking and calling map here */
+      /* Add logic for file seeking and calling map here */
+      
+      std::list<ShardInfo> mapShards;
+      unsigned num_intermediate_files = map_request.num_reducers();
+      for (int i = 0; i < map_request.shard_size(); i++)
+      {
+         mapShards.push_back(map_request.shard(i));
+      }
+
+      for (int i = 0; i < mapShards.size(); i++)
+      {
+         std::ifstream file;
+         if (!file.open(mapShards[i].file_name))
+         {
+            cout << "Error in opening input file\n";
+         }
+         else
+         {
+            char c;
+            std::string sentence;
+
+            if (mapShards[i].begin == 0)
+            {
+               file.seekg(mapShards[i].begin);
+            }
+            else
+            {
+               file.seekg(mapShards[i].begin - 1);
+               if (file.get(c) != '\n')
+               {
+                  std::getline(file, sentence);
+               }
+            }
+
+            while (file.tellg() < mapShards[i].end)
+            {
+               std::getline(file, sentence);
+               mapper->map(sentence);
+            }
+         }
+         file.close();
+      }
 
 		mapper->impl_->map_flusher->flush_key_values();
 
@@ -54,6 +102,72 @@ void Worker::processMapRequest(void) {
 		mcall = new MapCallData();
 	}
 	
+}
+
+void Worker::processReduceRequest(void) {
+
+   if (rcall->isActive()) {
+
+      ReduceRequest reduce_request = rcall->request;
+
+      std::list<std::string> fileNames;
+      std::map<std::string, std::vector<std::string>> collection;
+      for (int i = 0; i < reduce_request.files_size(); i++)
+      {
+         fileNames.push_back(reduce_request.files(i));
+      }
+
+      auto reducer = get_reducer_from_task_factory(reduce_request.user);
+      reducer->impl_->out_file_name = "reducer_" + reduce_request.worker_id() + "_" + reduce_request.reducer_id() + "_"; 
+
+      for (int i = 0; i < fileNames.size(); i++)
+      {
+         std::ifstream file;
+         if(!file.open(fileNames[i].in_file))
+         {
+            cout << "Error in opening intermediate file\n";
+         }
+         else
+         {
+            std::string sentence;
+            while (getline(file, sentence))
+            {
+               std::string key;
+               std::string value;
+               pos = sentence.find(",");
+               if (pos != std::string::npos)
+               {
+                  key = sentence.substr(0, pos);
+                  value = sentence.substr(pos + 1, sentence.size());
+
+                  if (collection.find(key) != collection.end())
+                  {
+                     collection[key].push_back(value);
+                  }
+                  else
+                  {
+                     std::vector<std::string> firstValue;
+                     firstValue.push_back(value);
+                     collection[key] = firstValue;
+                  }
+               }
+            }
+            file.close();
+         }
+      }
+
+      for (auto i = collecton.begin(); i != collection.end(); i++)
+      {
+         reducer->reduce(i->first, i->second);
+      }
+
+      rcall->reply->set_isComplete("true");
+
+   } else {
+      rcall->terminate();
+      rcall = new ReduceCallData();
+   }
+
 }
 
 std::string Worker::genUniqueFile(MapRequest *req, int reducer_id) {

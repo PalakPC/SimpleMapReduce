@@ -33,6 +33,8 @@ class Worker {
 		ReduceCallData *rcall;
 	        bool recvMapRequest(void);
 		void processMapRequest(void);
+	        bool recvReduceRequest(void);
+		void processReduceRequest(void);
 		std::string genUniqueFile(MapRequest *req, int rid);
 };
 
