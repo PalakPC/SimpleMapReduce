@@ -15,6 +15,7 @@ using masterworker::MapRequest;
 using masterworker::MapReply;
 using masterworker::ReduceRequest;
 using masterworker::ReduceReply;
+using masterworker::ShardInfo;
 
 using grpc::Server;
 using grpc::ServerAsyncResponseWriter;
@@ -69,6 +70,7 @@ private:
 	ServerContext ctx;
 	ReduceRequest request;
 	ReduceReply reply;
+	friend class Worker;
 	ServerAsyncResponseWriter<ReduceReply> responder;
 
 public:
