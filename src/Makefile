@@ -17,12 +17,12 @@ MR_WORKER_LIB = ../external/lib/libmr_worker.a
 
 all: system-check $(MAPREDUCE_LIB) $(MR_WORKER_LIB)
 
-$(MAPREDUCE_LIB): masterworker.pb.o masterworker.grpc.pb.o master.o worker_rpc.o worker.o flusher.o mapreduce_impl.o mapreduce.o
-	ar -rcs $@ masterworker.pb.o masterworker.grpc.pb.o master.o worker_rpc.o worker.o mapreduce_impl.o mapreduce.o
+$(MAPREDUCE_LIB): masterworker.pb.o masterworker.grpc.pb.o worker_rpc.o map_call_data.o reduce_call_data.o master.o worker.o flusher.o mapreduce_impl.o mapreduce.o
+	ar -rcs $@ masterworker.pb.o masterworker.grpc.pb.o worker_rpc.o map_call_data.o reduce_call_data.o master.o worker.o flusher.o mapreduce_impl.o mapreduce.o
 	ranlib $@
 
-$(MR_WORKER_LIB): masterworker.pb.o masterworker.grpc.pb.o mr_task_factory.o run_worker.o
-	ar -rcs $@ masterworker.pb.o masterworker.grpc.pb.o mr_task_factory.o run_worker.o
+$(MR_WORKER_LIB): masterworker.pb.o masterworker.grpc.pb.o worker_rpc.o worker.o flusher.o map_call_data.o reduce_call_data.o mr_task_factory.o run_worker.o
+	ar -rcs $@ masterworker.pb.o masterworker.grpc.pb.o worker_rpc.o worker.o flusher.o map_call_data.o reduce_call_data.o mr_task_factory.o run_worker.o
 	ranlib $@
 
 %.o: %.cc

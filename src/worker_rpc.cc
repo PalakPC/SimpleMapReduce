@@ -1,5 +1,9 @@
 #include "worker_rpc.h"
 
+CompletionQueue WorkerRpc::mcq;
+CompletionQueue WorkerRpc::rcq;
+
+
 WorkerRpc::WorkerRpc(unsigned id, std::shared_ptr<Channel> channel) :
         worker_id(id), stub(MapperReducer::NewStub(channel)) {}
 

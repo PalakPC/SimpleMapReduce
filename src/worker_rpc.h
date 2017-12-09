@@ -1,7 +1,8 @@
 #pragma once
 
 #include "masterworker.grpc.pb.h"
-#include "call_data.h"
+#include "reduce_call_data.h"
+#include "map_call_data.h"
 
 /* Forward declaration */
 class WorkerRpc;

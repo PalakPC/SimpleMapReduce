@@ -22,49 +22,6 @@ using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::ServerCompletionQueue;
 
-class MapCallData {
-
-private:
-	static MapperReducer::AsyncService *map_service;
-	static ServerCompletionQueue *map_cq;
-	bool active;
-	ServerContext ctx;
-	MapRequest request;
-	MapReply reply;
-	friend class Worker;
-	ServerAsyncResponseWriter<MapReply> responder;
-
-public:
-	static void initService(MapperReducer::AsyncService *serv,
-				ServerCompletionQueue *queue);
-
-        inline MapCallData() : responder(&ctx), active(true) {
-		map_service->RequestMapCall(&ctx, &request, &responder,
-					    map_cq, map_cq, this);
-	}
-
-	inline void terminate() {
-		delete this;
-	}
-
-	inline void replyToMaster() {
-		active = false;
-		responder.Finish(reply, Status::OK, this);
-	}
-
-	inline bool isActive() {
-		return active;
-	}
-};
-
-MapperReducer::AsyncService * MapCallData::map_service;
-ServerCompletionQueue * MapCallData::map_cq;
-void MapCallData::initService(MapperReducer::AsyncService *serv,
-			 ServerCompletionQueue *queue) {
-	map_service = serv;
-	map_cq = queue;
-}
-
 class ReduceCallData {
 
 private:
@@ -98,11 +55,3 @@ public:
 		return active;
 	}
 };
-
-MapperReducer::AsyncService * ReduceCallData::reduce_service;
-ServerCompletionQueue * ReduceCallData::red_cq;
-void ReduceCallData::initService(MapperReducer::AsyncService *serv,
-				 ServerCompletionQueue *queue) {
-	reduce_service = serv;
-	red_cq = queue;
-}

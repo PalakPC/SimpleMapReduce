@@ -1,8 +1,8 @@
 #pragma once
 
 #include <mr_task_factory.h>
+#include "worker_rpc.h"
 #include "mr_tasks.h"
-#include "call_data.h"
 #include "flusher.h"
 
 /* CS6210_TASK: Handle all the task a Worker is supposed to do.

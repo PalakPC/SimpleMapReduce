@@ -15,8 +15,12 @@ Worker::Worker(std::string ip_addr_port) {
 	MapCallData::initService(&service, queue.get());
 	ReduceCallData::initService(&service, queue.get());
 
+	std::cout << "Map Call Data" <<std::endl;
+
 	mcall = new MapCallData();
-	rcall = new ReduceCallData();
+	
+	std::cout << "Map Call Data" <<std::endl;
+	
 }
 
 bool Worker::recvMapRequest(void) {
