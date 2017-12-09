@@ -1,21 +1,30 @@
 #pragma once
 
-#include <ofstream>
+#include <grpc++/grpc++.h>
+#include <grpc/support/log.h>
+#include "masterworker.grpc.pb.h"
+
+#include <iostream>
+#include <fstream>
+
+using masterworker::MapReply;
 
 class Flusher {
 
 public:
-	Flusher(std::vector<ofstream> streams,
-		std::vector<std::string> file_names);
-
-	buffer(std::string key, std::string value);
-	complete(&MapReply);
+	Flusher(MapReply *map_reply, unsigned buffer_size);
+	~Flusher();
+	void buffer(std::string key, std::string value);
+	void flush_key_values(void);
 
 private:
-	struct output {
-		std::string ifile;
-		ofstream istream;
+	unsigned buf_index;
+	unsigned num_reducers;
+	size_t capacity;
+	struct pair {
+		std::string key;
+		std::string value;
 	};
-	std::unordered_map<std::string, output> ifile_map;
-	struct output *buffer;
-}
+	struct pair *key_value_buffer;
+	std::vector<std::ofstream> output_streams;
+};

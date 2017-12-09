@@ -3,6 +3,7 @@
 #include <mr_task_factory.h>
 #include "mr_tasks.h"
 #include "call_data.h"
+#include "flusher.h"
 
 /* CS6210_TASK: Handle all the task a Worker is supposed to do.
  * This is a big task for this project, will test your understanding
@@ -32,7 +33,7 @@ class Worker {
 		ReduceCallData *rcall;
 	        bool recvMapRequest(void);
 		void processMapRequest(void);
-		std::string genUniqueFile(unsigned);
+		std::string genUniqueFile(MapRequest *req, int rid);
 };
 
 extern std::shared_ptr<BaseMapper>

@@ -31,6 +31,7 @@ private:
 	ServerContext ctx;
 	MapRequest request;
 	MapReply reply;
+	friend class Worker;
 	ServerAsyncResponseWriter<MapReply> responder;
 
 public:

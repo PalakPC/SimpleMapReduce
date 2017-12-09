@@ -8,10 +8,12 @@ service MapperReducer {
 }
 
 message MapRequest {
-	uint32 num_reducers = 1;
-	uint32 worker_id = 2;
-	uint32 mapper_id = 3;
-	repeated ShardInfo shard = 4;
+	string user_id = 1;
+	uint32 num_reducers = 2;
+	uint32 worker_id = 3;
+	uint32 mapper_id = 4;
+	uint64 buffer_size = 5;
+	repeated ShardInfo shard = 6;
 }
 
 message ShardInfo {

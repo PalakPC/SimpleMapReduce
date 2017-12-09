@@ -29,7 +29,7 @@ inline bool
 shard_files(const MapReduceSpec& mr_spec,
 	    std::vector<FileShard>& fileShards)
 {
-	const size_t gran = mr_spec.granularity << 10; /* KB --> bytes */
+	const size_t gran = mr_spec.granularity;
 	size_t num_shards = (mr_spec.size + (gran - 1)) / gran; /* Round up */
 
 	size_t file_offset = 0u;
@@ -38,7 +38,10 @@ shard_files(const MapReduceSpec& mr_spec,
 
 		FileShard fileShard;
 		MapRequest *map_req = &fileShard.mapRequest;
+		map_req->set_user_id(mr_spec.user_id);
+		map_req->set_num_reducers(num_shards);
 		map_req->set_mapper_id(map_id);
+		map_req->set_buffer_size(gran >> 3);
 
 		size_t to_read = gran;
 		while (to_read) {

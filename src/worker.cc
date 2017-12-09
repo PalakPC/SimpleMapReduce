@@ -32,50 +32,36 @@ bool Worker::recvMapRequest(void) {
 
 void Worker::processMapRequest(void) {
 
-// 	if (!mcall->isActive()) {
-// 		mcall->terminate();
-// 		mcall = new MapCallData();
-// 		return;
-// 	}
+	if (mcall->isActive()) {
 
-// 	/* Create unique output file steams */
-// 	unsinged num_ifiles = mcall->request.num_reducers();
-	
-// 	std::vector<std::string> ifile_names;
-// 	std::vector<ofstream> streams(num_ifiles);
-	
-// 	for (unsigned ii = 0; ii < num_ifiles; ii++) {
-		
-// 		ofstream ifile = streams.at(ii);
-// 		std::string ifile_name = getUniqueFile(ii);		
-// 		ifile.open(ifile_name);
+		MapRequest map_request = mcall->request;
+		MapReply map_reply = mcall->reply;
+		unsigned num_reducers = map_request.num_reducers();
+		for (int red_id = 0;  red_id < num_reducers; red_id++) {
+			map_reply.add_ifiles(genUniqueFile(&map_request, red_id));
+		}
 
-// 		if (!ifile.is_open()) {
-// 			goto clean_up;
-// 		}
-// 	}
-// 	auto mapper = get_mapper_from_task_factory("cs6210");
-// 	mapper->impl_->set_outputs(streams);
+		auto mapper = get_mapper_from_task_factory(map_request.user_id());
+		Flusher map_flusher(&map_reply, 2048); /*Wiil fix!!!!!!!!!*/
+		mapper->impl_->map_flusher = &map_flusher;
+
+		/* Add logic for file seeking and calling map here */
+
+		mapper->impl_->map_flusher->flush_key_values();
+
+	} else {
+		mcall->terminate();
+		mcall = new MapCallData();
+	}
 	
-// 	/* TODO: Open and process shards. */
-	
-// 	num_mappings_processed++;
-	
-// clean_up:
-// 	for (unsinged ii = 0; ii < num_ifiles; ii++) {
-// 		ofstream ifile = streams.at(ii);
-// 		if (!ifile.is_open)
-// 			return;
-// 		ifile.close();
-// 	}
 }
 
-std::string Worker::genUniqueFile(unsigned tag) {
-	
-	std::string out_file = addr_port +
-		std::to_string(num_mappings_processed) +
-		std::to_string(tag);
+std::string Worker::genUniqueFile(MapRequest *req, int reducer_id) {
 
+	unsigned map_id = req->mapper_id();
+	unsigned work_id = req->worker_id();
+	std::string ifile = std::to_string(map_id) + "_" +
+		std::to_string(reducer_id) + "_" + std::to_string(work_id);
 	
 }
 

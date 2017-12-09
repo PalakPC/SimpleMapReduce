@@ -24,6 +24,7 @@ struct MapReduceSpec {
 	unsigned num_reducers;
 	size_t granularity;
 	size_t size;
+	std::string user_id;
 	std::string outdir;
 	std::vector<std::string> addrs;
 	std::vector<struct file_data> inputs;
@@ -31,6 +32,7 @@ struct MapReduceSpec {
 
 enum mr_spec_type {
 	CONFIG_IGNORE = -1,
+	USER_ID,
 	SHARD_GRANULARITY,
 	OUTPUT_DIR,
 	IP_ADDRS,
@@ -44,6 +46,7 @@ resolve_mr_type(std::string type)
 	static const std::unordered_map<std::string, mr_spec_type> mapper {
 		{"worker_ipaddr_ports", IP_ADDRS},
 		{"input_files", INPUT_FILES},
+		{"user_id", USER_ID},
 		{"map_kilobytes", SHARD_GRANULARITY},
 		{"output_dir", OUTPUT_DIR},		
 		{"n_output_files", NUM_REDUCERS}
@@ -89,9 +92,13 @@ read_mr_spec_from_config_file(const std::string& config_filename,
 
 		case SHARD_GRANULARITY:
 			mr_spec.granularity = stoi(value);
+			mr_spec.granularity <<= 10;
 			break;
 		case OUTPUT_DIR:
 			mr_spec.outdir = std::string(value) + "/";
+			break;
+		case USER_ID:
+			mr_spec.user_id = value;
 			break;
 		case IP_ADDRS:
 		{
