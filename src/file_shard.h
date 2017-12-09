@@ -33,7 +33,9 @@ shard_files(const MapReduceSpec& mr_spec,
 	size_t num_shards = (mr_spec.size + (gran - 1)) / gran; /* Round up */
 
 	size_t file_offset = 0u;
-	struct file_data cur = mr_spec.inputs.front();
+	std::vector<struct file_data>::const_iterator input_file;
+	input_file = mr_spec.inputs.begin();
+
 	for(unsigned map_id = 0u; map_id < num_shards; map_id++) {
 
 		FileShard fileShard;
@@ -46,6 +48,7 @@ shard_files(const MapReduceSpec& mr_spec,
 		size_t to_read = gran;
 		while (to_read) {
 
+			struct file_data cur = *input_file;
 			ShardInfo *shardInfo = map_req->add_shard();
 			shardInfo->set_file_name(cur.file);
 			shardInfo->set_begin(file_offset);
@@ -55,7 +58,7 @@ shard_files(const MapReduceSpec& mr_spec,
 				shardInfo->set_end(cur.stats.st_size);
 				to_read -= cur.stats.st_size - file_offset;
 				file_offset = 0u;
-				cur = mr_spec.inputs.front();
+				++input_file;
 
 			} else {
 

@@ -1,5 +1,4 @@
 #include "flusher.h"
-
 #include <functional>
 
 
@@ -11,23 +10,20 @@ Flusher::Flusher(MapReply *map_reply, unsigned buffer_size) {
 
 	for (int ii = 0; ii < map_reply->ifiles_size(); ii++) {
 		std::string ifile = map_reply->ifiles(ii);
-		std::ofstream stream(ifile);
-		if (!stream.is_open()) {
+		output_streams.emplace_back(std::ofstream(ifile.c_str()));
+		if (!output_streams[ii].is_open()) {
 			std::cerr << "Failed to open file: " <<
 				ifile << std::endl;
 			return;
 		}
-		output_streams.push_back(stream);
 	}
 	num_reducers = output_streams.size();
 }
 
 Flusher::~Flusher() {
 
-	std::vector<std::ofstream>::iterator iter;
-	for (iter = output_streams.begin(); iter != output_streams.end();
-	     iter++) {
-		(*iter).close();
+	for (int ii = 0; ii < output_streams.size(); ii++) {
+		output_streams[ii].close();
 	}
 	delete key_value_buffer;
 }
