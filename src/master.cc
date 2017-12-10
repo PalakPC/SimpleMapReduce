@@ -243,15 +243,9 @@ void Master::processReducerOutput(AsyncReduceCall *call) {
 	 */
 	if (pending_reduce_requests.find(call->request) !=
 	    pending_reduce_requests.end()) {
-		
 		pending_reduce_requests.erase(call->request);
-
-		/* Send to output directory */
-		
-	} else {
-
-		
-		/* Remove the received file */
+	} else {		
+		remove(call->reply.output_file().c_str());
 	}
 
 	reducer_queue.push_back(call->worker);

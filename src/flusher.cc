@@ -10,7 +10,7 @@ Flusher::Flusher(MapReply *map_reply, unsigned buffer_size) {
 
 	for (int ii = 0; ii < map_reply->ifiles_size(); ii++) {
 		std::string ifile = map_reply->ifiles(ii);
-      remove(ifile.c_str());
+		remove(ifile.c_str());
 		output_streams.emplace_back(std::ofstream(ifile.c_str()));
 		if (!output_streams[ii].is_open()) {
 			std::cerr << "Failed to open file: " <<
