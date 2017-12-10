@@ -92,67 +92,58 @@ void Worker::processMapRequest(void) {
 
 void Worker::processReduceRequest(void) {
 
-   if (rcall->isActive()) {
+	if (rcall->isActive()) {
+		ReduceRequest reduce_request = rcall->request;
 
-      ReduceRequest reduce_request = rcall->request;
+		std::vector<std::string> fileNames;
+		std::map<std::string, std::vector<std::string>> collection;
+		
+		for (int i = 0; i < reduce_request.files_size(); i++) {
+			fileNames.push_back(reduce_request.files(i));
+		}
+		
+		auto reducer = get_reducer_from_task_factory(reduce_request.user_id());
+		reducer->impl_->out_file_name = "reducer_" +
+			std::to_string(reduce_request.worker_id())
+			+ "_" + std::to_string(reduce_request.reducer_id())
+			+ "_"; 
 
-      std::vector<std::string> fileNames;
-      std::map<std::string, std::vector<std::string>> collection;
+		for (int i = 0; i < fileNames.size(); i++) {
+			std::ifstream file;
+			file.open(fileNames[i]);
+			std::string sentence;
+			while (getline(file, sentence)) {
+				std::string key;
+				std::string value;
+				size_t pos = sentence.find(",");
+				if (pos != std::string::npos) {
 
-      for (int i = 0; i < reduce_request.files_size(); i++)
-      {
-         fileNames.push_back(reduce_request.files(i));
-      }
+					key = sentence.substr(0, pos);
+					value = sentence.substr(pos + 1, sentence.size());
 
-      auto reducer = get_reducer_from_task_factory(reduce_request.user_id());
-      reducer->impl_->out_file_name = "reducer_" +
-	      std::to_string(reduce_request.worker_id())
-	      + "_" + std::to_string(reduce_request.reducer_id())
-	      + "_"; 
+					if (collection.find(key) != collection.end()) {
+						collection[key].push_back(value);
+					} else {
+						std::vector<std::string> firstValue;
+						firstValue.push_back(value);
+						collection[key] = firstValue;
+					}
+				}
+			}
+			file.close();
+		}
 
-      for (int i = 0; i < fileNames.size(); i++)
-      {
-         std::ifstream file;
-         file.open(fileNames[i]);
-         std::string sentence;
-         while (getline(file, sentence))
-         {
-            std::string key;
-            std::string value;
-            size_t pos = sentence.find(",");
-            if (pos != std::string::npos)
-            {
-               key = sentence.substr(0, pos);
-               value = sentence.substr(pos + 1, sentence.size());
+		for (auto i = collection.begin(); i != collection.end(); i++) {
+			reducer->reduce(i->first, i->second);
+		}
 
-               if (collection.find(key) != collection.end())
-               {
-                  collection[key].push_back(value);
-               }
-               else
-               {
-                  std::vector<std::string> firstValue;
-                  firstValue.push_back(value);
-                  collection[key] = firstValue;
-               }
-            }
-         }
-         file.close();
-      }
+		rcall->reply.set_iscomplete(true);
+		rcall->replyToMaster();
 
-      for (auto i = collection.begin(); i != collection.end(); i++)
-      {
-         reducer->reduce(i->first, i->second);
-      }
-
-      rcall->reply.set_iscomplete(true);
-      rcall->replyToMaster();
-
-   } else {
-      rcall->terminate();
-      rcall = new ReduceCallData();
-   }
-
+	} else {
+		rcall->terminate();
+		rcall = new ReduceCallData();
+	}
 }
 
 std::string Worker::genUniqueFile(MapRequest *req, int reducer_id) {

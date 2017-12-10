@@ -81,10 +81,12 @@ void Master::updateReduceRequests(AsyncMapCall *call) {
 		MapReply new_reply = call->reply;
 		for (unsigned ii = 0; ii < new_reply.ifiles_size(); ii++) {
 
-			ReduceRequest reduce_req = reduce_requests.at(ii);
+			ReduceRequest *reduce_req = &reduce_requests[ii];
 			std::string ifile = new_reply.ifiles(ii);
 			if (!ifile.empty()) {
-				reduce_req.add_files(ifile.c_str());
+				std::string *reduce_input =
+					reduce_req->add_files();
+				reduce_input->assign(ifile);
 			}
 		}
 
@@ -172,7 +174,7 @@ bool Master::manageMapTasks() {
 		reducer_queue.push_back(*iter);
 	}
 	for (int ii = 0; ii < reduce_requests.size(); ii++) {
-		new_reduce_requests.push_back(&reduce_requests.at(ii));
+		new_reduce_requests.push_back(&reduce_requests[ii]);
 	}
 	return true;
 }
@@ -181,7 +183,7 @@ bool Master::manageMapTasks() {
 bool Master::manageReduceTasks() {
 
 	WorkerRpc *reducer;
-	while (!new_reduce_requests.empty() &&
+	while (!new_reduce_requests.empty() ||
 	       !pending_reduce_requests.empty()) {
 
 		while (!reducer_queue.empty() &&
