@@ -45,7 +45,7 @@ void Flusher::flush_key_values(void) {
 	for (unsigned ii = 0; ii < stop; ii++) {
 		struct pair *cur = &key_value_buffer[ii];
 		output_streams[hash_fn(cur->key) % num_reducers]
-			<< cur->key << ", " << cur->value << std::endl;
+			<< cur->key << "," << cur->value << std::endl;
 	}
 	buf_index = 0;
 }
