@@ -189,19 +189,21 @@ bool Master::manageMapTasks() {
 bool Master::manageReduceTasks() {
 
 	WorkerRpc *reducer;
+	ReduceRequest *new_reduce_req;
 	while (!new_reduce_requests.empty() ||
 	       !pending_reduce_requests.empty()) {
 
 		while (!reducer_queue.empty() &&
 		       !new_reduce_requests.empty()) {
 
-			ReduceRequest *new_reduce_req;
+			
 			reducer = reducer_queue.front();
 			reducer_queue.pop_front();
 
 			new_reduce_req = new_reduce_requests.front();
 			new_reduce_requests.pop_front();
 
+			pending_reduce_requests.insert(new_reduce_req);
 			reducer->sendReduceRequest(new_reduce_req);
 		}
 
@@ -247,10 +249,10 @@ void Master::processReducerOutput(AsyncReduceCall *call) {
 	 */
 	if (pending_reduce_requests.find(call->request) !=
 	    pending_reduce_requests.end()) {
-      std::string new_file_name("output/" + call->reply.output_file());
-      rename(call->reply.output_file().c_str(), new_file_name.c_str());
+		
+		std::string new_file_name("./output/" + call->reply.output_file());
+		rename(call->reply.output_file().c_str(), new_file_name.c_str());
 		pending_reduce_requests.erase(call->request);
-
 		
 	} else {
 		remove(call->reply.output_file().c_str());
