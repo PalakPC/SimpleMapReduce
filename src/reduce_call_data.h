@@ -31,6 +31,7 @@ private:
 	ServerContext ctx;
 	ReduceRequest request;
 	ReduceReply reply;
+	friend class Worker;
 	ServerAsyncResponseWriter<ReduceReply> responder;
 
 public:

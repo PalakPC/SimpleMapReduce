@@ -5,6 +5,8 @@
 #include "mr_tasks.h"
 #include "flusher.h"
 
+using masterworker::ShardInfo;
+
 /* CS6210_TASK: Handle all the task a Worker is supposed to do.
  * This is a big task for this project, will test your understanding
  * of map reduce
