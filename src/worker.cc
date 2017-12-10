@@ -44,14 +44,14 @@ void Worker::processMapRequest(void) {
 	if (mcall->isActive()) {
 
 		MapRequest map_request = mcall->request;
-		MapReply map_reply = mcall->reply;
 		unsigned num_reducers = map_request.num_reducers();
 		for (int red_id = 0;  red_id < num_reducers; red_id++) {
-			map_reply.add_ifiles(genUniqueFile(&map_request, red_id));
+			std::string *ifile = mcall->reply.add_ifiles();
+			ifile->assign(genUniqueFile(&map_request, red_id));
 		}
-
+		
 		auto mapper = get_mapper_from_task_factory(map_request.user_id());
-		Flusher map_flusher(&map_reply, map_request.buffer_size());
+		Flusher map_flusher(&mcall->reply, map_request.buffer_size());
 		mapper->impl_->map_flusher = &map_flusher;
 
 		std::vector<ShardInfo> mapShards;
@@ -59,7 +59,7 @@ void Worker::processMapRequest(void) {
 		for (int i = 0; i < map_request.shard_size(); i++) {
 			mapShards.push_back(map_request.shard(i));
 		}
-		
+
 		for (int i = 0; i < mapShards.size(); i++) {
 			file.open(mapShards[i].file_name());
 			char c;
@@ -146,6 +146,7 @@ void Worker::processReduceRequest(void) {
       }
 
       rcall->reply.set_iscomplete(true);
+      rcall->replyToMaster();
 
    } else {
       rcall->terminate();
@@ -171,13 +172,10 @@ std::string Worker::genUniqueFile(MapRequest *req, int reducer_id) {
 bool Worker::run() {
 
 	while (true) {
-
 		while (recvMapRequest()) {
 			processMapRequest();
 		}
-		while (recvReduceRequest()) {
-			processReduceRequest();
-		}
+		processReduceRequest();
 	}
 	return true;
 }

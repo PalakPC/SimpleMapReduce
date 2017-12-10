@@ -32,23 +32,23 @@ void WorkerRpc::sendReduceRequest(ReduceRequest *req) {
 	
 AsyncMapCall * WorkerRpc::recvMapResponseSync(void) {
 
-	void *tag;
+	void *tag = NULL;
 	bool ok;
 	AsyncMapCall *call;
 
 	GPR_ASSERT(mcq.Next(&tag, &ok));
 	GPR_ASSERT(ok);
-
 	return static_cast<AsyncMapCall*>(tag);
 }
 
 AsyncMapCall * WorkerRpc::recvMapResponseAsync(
 	std::chrono::system_clock::time_point deadline) {
 
-	void *tag;
-	bool ok;
+	void *tag = NULL;
+	bool ok = false;
 	AsyncMapCall *call;
 
+	/* Not quite sure what the function of ok is ??*/
 	GPR_ASSERT(mcq.AsyncNext(&tag, &ok, deadline));
 	return (ok) ? static_cast<AsyncMapCall*>(tag) : NULL;
 }
@@ -69,7 +69,7 @@ AsyncReduceCall * WorkerRpc::recvReduceResponseAsync(
 	std::chrono::system_clock::time_point deadline) {
 
 	void *tag;
-	bool ok;
+	bool ok = false;
 	AsyncReduceCall *call;
 
 	GPR_ASSERT(rcq.AsyncNext(&tag, &ok, deadline));
