@@ -243,6 +243,8 @@ void Master::processReducerOutput(AsyncReduceCall *call) {
 	 */
 	if (pending_reduce_requests.find(call->request) !=
 	    pending_reduce_requests.end()) {
+      std::string new_file_name("output/" + call->reply.output_file());
+      rename(call->reply.output_file().c_str(), new_file_name.c_str());
 		pending_reduce_requests.erase(call->request);
 	} else {		
 		remove(call->reply.output_file().c_str());
