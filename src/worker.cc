@@ -1,26 +1,24 @@
 #include "worker.h"
 
-
 /* CS6210_TASK: ip_addr_port is the only information you get when started.
  * You can populate your other class data members here if you want
  */
 Worker::Worker(std::string ip_addr_port) {
 
-	builder.AddListeningPort(ip_addr_port,
+	worker_addr = ip_addr_port;
+	builder.AddListeningPort(worker_addr,
 				 grpc::InsecureServerCredentials());
 
 	builder.RegisterService(&service);
 	queue = builder.AddCompletionQueue();
-	
+
 	MapCallData::initService(&service, queue.get());
 	ReduceCallData::initService(&service, queue.get());
 
-	std::cout << "Map Call Data" <<std::endl;
+	server = builder.BuildAndStart();
 
 	mcall = new MapCallData();
-	
-	std::cout << "Map Call Data" <<std::endl;
-	
+	rcall = new ReduceCallData();
 }
 
 bool Worker::recvMapRequest(void) {

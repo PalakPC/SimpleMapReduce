@@ -23,8 +23,7 @@ class Worker {
 		bool run();
 
 	private:
-		unsigned num_mappings_processed;
-		std::string addr_port;
+		std::string worker_addr;
 		ServerBuilder builder;
 		MapperReducer::AsyncService service;
 		std::unique_ptr<ServerCompletionQueue> queue;
