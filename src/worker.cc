@@ -1,4 +1,5 @@
 #include "worker.h"
+# include <cstdio>
 
 /* CS6210_TASK: ip_addr_port is the only information you get when started.
  * You can populate your other class data members here if you want
@@ -106,6 +107,7 @@ void Worker::processReduceRequest(void) {
       std::string out_file_name("reducer_" +
 			std::to_string(reduce_request.worker_id())
 			+ "_" + std::to_string(reduce_request.reducer_id()));
+      remove(out_file_name.c_str());
       reducer->impl_->out_file_name = out_file_name;
 
 		for (int i = 0; i < fileNames.size(); i++) {
