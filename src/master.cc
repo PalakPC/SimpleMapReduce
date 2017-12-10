@@ -237,7 +237,7 @@ bool Master::manageReduceTasks() {
 }
 
 void Master::processReducerOutput(AsyncReduceCall *call) {
-	return;
+	reducer_queue.push_back(call->worker);
 }
 
 /* CS621_TASK: Here you go. once this function is called you will complete
