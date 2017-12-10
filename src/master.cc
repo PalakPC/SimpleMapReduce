@@ -126,7 +126,7 @@ bool Master::manageMapTasks() {
 
 			mapper = mapper_queue.front();
 			mapper_queue.pop_front();
-
+			
 			req = new_map_requests.front();
 			new_map_requests.pop_front();
 
@@ -237,7 +237,24 @@ bool Master::manageReduceTasks() {
 }
 
 void Master::processReducerOutput(AsyncReduceCall *call) {
+
+	/* If a reduce request is in the pending set, the the results are brand
+	 * new. Otherwise they are old and need to be discarded.
+	 */
+	if (pending_reduce_requests.find(call->request) !=
+	    pending_reduce_requests.end()) {
+		
+		pending_reduce_requests.erase(call->request);
+
+		/* Send to output directory */
+		
+	} else {
+
+		/* Remove the received file */
+	}
+
 	reducer_queue.push_back(call->worker);
+	delete call;
 }
 
 /* CS621_TASK: Here you go. once this function is called you will complete
