@@ -103,9 +103,10 @@ void Worker::processReduceRequest(void) {
 		}
 		
 		auto reducer = get_reducer_from_task_factory(reduce_request.user_id());
-		reducer->impl_->out_file_name = "reducer_" +
+      std::string out_file_name("reducer_" +
 			std::to_string(reduce_request.worker_id())
-			+ "_" + std::to_string(reduce_request.reducer_id()); 
+			+ "_" + std::to_string(reduce_request.reducer_id()));
+      reducer->impl_->out_file_name = out_file_name;
 
 		for (int i = 0; i < fileNames.size(); i++) {
 			std::ifstream file;
@@ -136,6 +137,7 @@ void Worker::processReduceRequest(void) {
 			reducer->reduce(i->first, i->second);
 		}
 
+      rcall->reply.set_output_file(out_file_name);
 		rcall->reply.set_iscomplete(true);
 		rcall->replyToMaster();
 
