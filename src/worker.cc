@@ -146,9 +146,9 @@ void Worker::processReduceRequest(void) {
 }
 
 std::string Worker::genUniqueFile(MapRequest *req, int reducer_id) {
-	return "mapper_ifile_" + std::to_string(req->mapper_id()) + "_" +
-		std::to_string(reducer_id) + "_" +
-		std::to_string(req->worker_id());
+	return "mapper_ifile_" + std::to_string(req->worker_id()) + "_" +
+		std::to_string(req->mapper_id()) + "_" +
+		std::to_string(reducer_id);
 }
 
 /* CS6210_TASK: Here you go. once this function is called

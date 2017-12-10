@@ -21,11 +21,13 @@ Master::Master(const MapReduceSpec& mr_spec,
 		mapper_queue.push_back(worker);
 	}
 
-	/* Set up fresh batch of map requests to be submitted to workers. */
-	for (int ii = 0; ii < file_shards.size(); ii++) {
+	/* Set up map and reduce requests to be submitted to workers. */
+	for (unsigned ii = 0; ii < file_shards.size(); ii++) {
 		FileShard file_shard = file_shards.at(ii);
 		map_requests[ii] = file_shard.mapRequest;
 		new_map_requests.push_back(&map_requests[ii]);
+		reduce_requests[ii].set_user_id(mr_spec.user_id);
+		reduce_requests[ii].set_reducer_id(ii);
 	}
 }
 
