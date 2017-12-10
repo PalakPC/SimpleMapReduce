@@ -250,6 +250,7 @@ void Master::processReducerOutput(AsyncReduceCall *call) {
 		
 	} else {
 
+		
 		/* Remove the received file */
 	}
 

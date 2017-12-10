@@ -35,4 +35,5 @@ message ReduceRequest {
 
 message ReduceReply {
 	bool isComplete = 1;
+	string output_files = 2;
 }
