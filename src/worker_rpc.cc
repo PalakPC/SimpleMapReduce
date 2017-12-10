@@ -8,6 +8,7 @@ WorkerRpc::WorkerRpc(unsigned id, std::shared_ptr<Channel> channel) :
 
 void WorkerRpc::sendMapRequest(MapRequest *req) {
 
+	req->set_worker_id(worker_id);
 	AsyncMapCall *call = new AsyncMapCall;
 	call->worker = this;
 	call->request = req;
@@ -20,6 +21,7 @@ void WorkerRpc::sendMapRequest(MapRequest *req) {
 
 void WorkerRpc::sendReduceRequest(ReduceRequest *req) {
 
+	req->set_worker_id(worker_id);
 	AsyncReduceCall *call = new AsyncReduceCall;
 	call->worker = this;
 	call->request = req;
