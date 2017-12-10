@@ -25,7 +25,7 @@ Flusher::~Flusher() {
 	for (int ii = 0; ii < output_streams.size(); ii++) {
 		output_streams[ii].close();
 	}
-	delete key_value_buffer;
+	delete[] key_value_buffer;
 }
 
 void Flusher::buffer(std::string key, std::string value) {
@@ -41,7 +41,8 @@ void Flusher::buffer(std::string key, std::string value) {
 void Flusher::flush_key_values(void) {
 
 	std::hash<std::string> hash_fn;
-	for (unsigned ii = 0; ii < capacity; ii++) {
+	unsigned stop = (buf_index == capacity) ? capacity : buf_index + 1;
+	for (unsigned ii = 0; ii < stop; ii++) {
 		struct pair *cur = &key_value_buffer[ii];
 		output_streams[hash_fn(cur->key) % num_reducers]
 			<< cur->key << ", " << cur->value << std::endl;

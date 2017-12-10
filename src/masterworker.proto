@@ -27,7 +27,7 @@ message MapReply {
 }
 
 message ReduceRequest {
-   string user_id = 1;
+	string user_id = 1;
 	uint32 worker_id = 2;
 	uint32 reducer_id = 3;
 	repeated string files = 4;

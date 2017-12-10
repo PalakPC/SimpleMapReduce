@@ -41,12 +41,12 @@ shard_files(const MapReduceSpec& mr_spec,
 		FileShard fileShard;
 		MapRequest *map_req = &fileShard.mapRequest;
 		map_req->set_user_id(mr_spec.user_id);
-		map_req->set_num_reducers(num_shards);
+		map_req->set_num_reducers(mr_spec.num_reducers);
 		map_req->set_mapper_id(map_id);
 		map_req->set_buffer_size(gran >> 3);
 
 		size_t to_read = gran;
-		while (to_read) {
+		while (input_file != mr_spec.inputs.end() && to_read) {
 
 			struct file_data cur = *input_file;
 			ShardInfo *shardInfo = map_req->add_shard();

@@ -8,6 +8,7 @@ Master::Master(const MapReduceSpec& mr_spec,
 	       const std::vector<FileShard>& file_shards) :
 	total_workers(mr_spec.addrs.size()),
 	output_path(mr_spec.outdir),
+	map_requests(file_shards.size()),
 	reduce_requests(mr_spec.num_reducers) {
 
 	/* Create the woker queue */
@@ -23,7 +24,8 @@ Master::Master(const MapReduceSpec& mr_spec,
 	/* Set up fresh batch of map requests to be submitted to workers. */
 	for (int ii = 0; ii < file_shards.size(); ii++) {
 		FileShard file_shard = file_shards.at(ii);
-		new_map_requests.push_back(&file_shard.mapRequest);
+		map_requests[ii] = file_shard.mapRequest;
+		new_map_requests.push_back(&map_requests[ii]);
 	}
 }
 
@@ -111,7 +113,7 @@ bool Master::manageMapTasks() {
 	/* While there are pending and new map request, submit map requests
 	 * to workers.
 	 */
-	while (!pending_map_requests.empty() && !new_map_requests.empty()) {
+	while (!pending_map_requests.empty() || !new_map_requests.empty()) {
 
 		/* First ensure free workers tackle new requests and hope the
 		 * stranglers complete when we collect completed map responses.

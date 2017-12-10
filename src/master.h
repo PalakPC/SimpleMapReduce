@@ -18,6 +18,7 @@ private:
 
 	/* Data Structures for managing mappers */
 	std::list<WorkerRpc*> mapper_queue;
+	std::vector<MapRequest> map_requests;
 	std::list<MapRequest*> new_map_requests;
 	std::unordered_set<MapRequest*> pending_map_requests;
 

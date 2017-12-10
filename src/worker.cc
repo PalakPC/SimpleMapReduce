@@ -51,54 +51,43 @@ void Worker::processMapRequest(void) {
 		}
 
 		auto mapper = get_mapper_from_task_factory(map_request.user_id());
-		Flusher map_flusher(&map_reply, 2048); /*Wiil fix!!!!!!!!!*/
+		Flusher map_flusher(&map_reply, map_request.buffer_size());
 		mapper->impl_->map_flusher = &map_flusher;
 
-      /* Add logic for file seeking and calling map here */
-      
-      std::vector<ShardInfo> mapShards;
-      unsigned num_intermediate_files = map_request.num_reducers();
-      std::ifstream file;
-      for (int i = 0; i < map_request.shard_size(); i++)
-      {
-         mapShards.push_back(map_request.shard(i));
-      }
+		std::vector<ShardInfo> mapShards;
+		std::ifstream file;
+		for (int i = 0; i < map_request.shard_size(); i++) {
+			mapShards.push_back(map_request.shard(i));
+		}
+		
+		for (int i = 0; i < mapShards.size(); i++) {
+			file.open(mapShards[i].file_name());
+			char c;
+			std::string sentence;
 
-      for (int i = 0; i < mapShards.size(); i++)
-      {
-         file.open(mapShards[i].file_name());
-         char c;
-         std::string sentence;
+			if (mapShards[i].begin() == 0) {
+				file.seekg(mapShards[i].begin());
+			} else {
+				file.seekg(mapShards[i].begin() - 1);
+				file.get(c);
+				if (c != '\n') {
+					std::getline(file, sentence);
+				}
+			}
 
-         if (mapShards[i].begin() == 0)
-         {
-            file.seekg(mapShards[i].begin());
-         }
-         else
-         {
-            file.seekg(mapShards[i].begin() - 1);
-            file.get(c);
-            if (c != '\n')
-            {
-               std::getline(file, sentence);
-            }
-         }
-
-         while (file.tellg() < mapShards[i].end())
-         {
-            std::getline(file, sentence);
-            mapper->map(sentence);
-         }
-      }
-      file.close();
-
+			while (file.tellg() < mapShards[i].end()) {
+				std::getline(file, sentence);
+				mapper->map(sentence);
+			}
+		}
+		file.close();
 		mapper->impl_->map_flusher->flush_key_values();
-
+		mcall->replyToMaster();
+		
 	} else {
 		mcall->terminate();
 		mcall = new MapCallData();
 	}
-	
 }
 
 void Worker::processReduceRequest(void) {
@@ -116,7 +105,10 @@ void Worker::processReduceRequest(void) {
       }
 
       auto reducer = get_reducer_from_task_factory(reduce_request.user_id());
-      reducer->impl_->out_file_name = "reducer_" + std::to_string(reduce_request.worker_id()) + "_" + std::to_string(reduce_request.reducer_id()) + "_"; 
+      reducer->impl_->out_file_name = "reducer_" +
+	      std::to_string(reduce_request.worker_id())
+	      + "_" + std::to_string(reduce_request.reducer_id())
+	      + "_"; 
 
       for (int i = 0; i < fileNames.size(); i++)
       {
@@ -163,12 +155,9 @@ void Worker::processReduceRequest(void) {
 }
 
 std::string Worker::genUniqueFile(MapRequest *req, int reducer_id) {
-
-	unsigned map_id = req->mapper_id();
-	unsigned work_id = req->worker_id();
-	std::string ifile = std::to_string(map_id) + "_" +
-		std::to_string(reducer_id) + "_" + std::to_string(work_id);
-	
+	return "mapper_ifile_" + std::to_string(req->mapper_id()) + "_" +
+		std::to_string(reducer_id) + "_" +
+		std::to_string(req->worker_id());
 }
 
 /* CS6210_TASK: Here you go. once this function is called
@@ -180,23 +169,15 @@ std::string Worker::genUniqueFile(MapRequest *req, int reducer_id) {
  * however you want when running map/reduce tasks.
  */
 bool Worker::run() {
-	
-	/*  Below 5 lines are just examples of how you will call map and reduce
-	 *  Remove them once you start writing your own logic
-	 */
-	
-	// std::cout << "worker.run(), I 'm not ready yet" <<std::endl;
-	// auto mapper = get_mapper_from_task_factory("cs6210");
-	
-	// mapper->map("I m just a 'dummy', a \"dummy line\"");
-	// auto reducer = get_reducer_from_task_factory("cs6210");
-	
-	// reducer->reduce("dummy", std::vector<std::string>({"1", "1"}));
-	// return true;
 
+	while (true) {
 
-	while (recvMapRequest()) {
-		processMapRequest();
+		while (recvMapRequest()) {
+			processMapRequest();
+		}
+		while (recvReduceRequest()) {
+			processReduceRequest();
+		}
 	}
 	return true;
 }

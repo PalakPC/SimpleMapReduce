@@ -17,7 +17,7 @@
  */
 struct file_data {
 	struct stat stats;
-	const char *file;
+	std::string file;
 };
 
 struct MapReduceSpec {
@@ -113,8 +113,8 @@ read_mr_spec_from_config_file(const std::string& config_filename,
 			std::stringstream ss(value);
 			while(getline(ss, token, ',')) {
 				struct file_data cur;
-				cur.file = token.c_str();
-				if (stat(cur.file, &cur.stats) < 0) {
+				cur.file = token;
+				if (stat(cur.file.c_str(), &cur.stats) < 0) {
 					std::cerr << "Failed to obtain meta "
 						"data for file " << token <<
 						std::endl;
