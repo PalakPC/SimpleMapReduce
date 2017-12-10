@@ -104,11 +104,12 @@ void Worker::processReduceRequest(void) {
 		}
 		
 		auto reducer = get_reducer_from_task_factory(reduce_request.user_id());
-      std::string out_file_name("reducer_" +
+		std::string out_file_name("reducer_" +
 			std::to_string(reduce_request.worker_id())
 			+ "_" + std::to_string(reduce_request.reducer_id()));
-      remove(out_file_name.c_str());
-      reducer->impl_->out_file_name = out_file_name;
+
+		remove(out_file_name.c_str());
+		reducer->impl_->out_file_name = out_file_name;
 
 		for (int i = 0; i < fileNames.size(); i++) {
 			std::ifstream file;

@@ -21,11 +21,15 @@ Master::Master(const MapReduceSpec& mr_spec,
 		mapper_queue.push_back(worker);
 	}
 
-	/* Set up map and reduce requests to be submitted to workers. */
+	/* Set up map requests to be submitted to workers. */
 	for (unsigned ii = 0; ii < file_shards.size(); ii++) {
 		FileShard file_shard = file_shards.at(ii);
 		map_requests[ii] = file_shard.mapRequest;
 		new_map_requests.push_back(&map_requests[ii]);
+	}
+
+	/* Prep reduce requests for later submission to workers. */
+	for (unsigned ii = 0; ii < reduce_requests.size(); ii++) {
 		reduce_requests[ii].set_user_id(mr_spec.user_id);
 		reduce_requests[ii].set_reducer_id(ii);
 	}
@@ -246,7 +250,9 @@ void Master::processReducerOutput(AsyncReduceCall *call) {
       std::string new_file_name("output/" + call->reply.output_file());
       rename(call->reply.output_file().c_str(), new_file_name.c_str());
 		pending_reduce_requests.erase(call->request);
-	} else {		
+
+		
+	} else {
 		remove(call->reply.output_file().c_str());
 	}
 
