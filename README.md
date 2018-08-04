@@ -1,8 +1,6 @@
-# cs6210Project4
-MapReduce Infrastructure
+Simple MapReduce Infrastructure for frequency calculation
 
-[Project Description](description.md)
-
-[Code walk through](structure.md)
-
-[How to setup the project](INSTALL.md)
+Directory structure:
+* src: Source files
+* test: Files for testing
+* external: includes etc.
