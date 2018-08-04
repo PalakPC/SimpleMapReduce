@@ -1,8 +1,9 @@
-The World's Greatest Map Reduce System Ever. Even Better than Google's.
+## The World's Greatest Map Reduce System Ever. 
+Even Better than Google's.
 
 By: Palak Choudhary && Eric Martin
 
-Framework and Master
+### Framework and Master
 
 Master maintains two queues for handling workers during the map phase and
 the reduce phase. If either queue is empty during either phase, then the master
@@ -24,7 +25,7 @@ At the end of the map phase, if there are old outstanding map requests, then
 the master will listen for them only after it has sent all of its fresh reduce
 requests.
 
-Map/Reduce
+### Map/Reduce
 
 During the map phase, we added a "Flusher class" which buffers key_value pairs
 up to 1/8 of the input shard size. When the buffer is full, it simply flushes to
@@ -32,26 +33,22 @@ disk.
 
 Unique file names are generated for intermediate mapper files and the reducers files.
 
-Intermediate Format: mapper_workerID_mapperID_bucketID
-Output FormatL reducer_workerID_reducerID
+* Intermediate Format: mapper_workerID_mapperID_bucketID
+* Output Format: reducer_workerID_reducerID
 
 Note the bucketID == reducerID. The keys encountered are hashed and compressed to
 the defined number of reducers.
 
 And of course, the worker nodes comminicate asynchronously with the master node. :)
 
-When Running:
+### When Running:
 
 to build source code ---> hit 'make' in src directory
 Our program will replace intermedaite files that it needs in order save key, value pairs
 from the map phase. So it should work on successive runs. Change the config as you like.
-And Have a Merry Christmas! (Or Happy Holiday. Which ever you prefer :) ).
 
 
-
-/**************************************************************************************/
-/******************************IMPORTANT***********************************************/
-/**************************************************************************************/
+#### IMPORTANT
 
 Now... C++
 We decided to add actual .cc source files. Because it is important!!!
@@ -61,6 +58,3 @@ compile time. It occurs during link time when you build the archive. Why!! GOD K
 
 How anyone builds an interface using C++ is beyond me. That said objects cool, but still
 why. Is it a feature?
-
-
-
