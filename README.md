@@ -1,4 +1,4 @@
-Simple MapReduce Infrastructure for frequency calculation
+## Simple MapReduce Infrastructure for frequency calculation
 
 Directory structure:
 * src: Source files
